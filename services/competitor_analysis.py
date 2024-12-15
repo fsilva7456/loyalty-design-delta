@@ -12,24 +12,20 @@ class CompetitorAnalysisService:
         return f"""Analyze the competitive landscape for {request.company_name} in the {request.industry} industry.
         Include loyalty program details: {request.include_loyalty_program}.
         
-        Provide the following information in a structured format:
-        1. Main competitors (top 5)
-        2. Competitor details: market position, target demographics, key differentiators
-        3. Loyalty program features and weaknesses (if applicable)
-        4. Strategic recommendations for {request.company_name}
-        
-        Format the response as a JSON object with the following structure:
+        Provide a detailed analysis in JSON format with the following structure:
         {{
             "main_competitors": ["competitor1", "competitor2", ...],
-            "competitor_details": "detailed analysis",
-            "loyalty_insights": "loyalty program analysis",
-            "strategic_recommendations": "strategic recommendations"  
+            "competitor_details": "detailed analysis of main competitors including their market position, target demographics, and key differentiators",
+            "loyalty_insights": "analysis of competitors' loyalty programs and their weaknesses",
+            "strategic_recommendations": "strategic recommendations for {request.company_name}"  
         }}
+        
+        Ensure all fields except main_competitors are strings, not nested objects.
+        Be detailed but keep all analysis in a single text field.
         """
 
     async def analyze_competitors(self, request: CompetitorAnalysisRequest) -> CompetitorAnalysisResponse:
         try:
-            # Removed await as OpenAI client methods are not async
             response = self.client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=[{
@@ -44,6 +40,10 @@ class CompetitorAnalysisService:
             )
             
             result = json.loads(response.choices[0].message.content)
+            
+            # Validate result structure
+            if not isinstance(result['competitor_details'], str) or not isinstance(result['loyalty_insights'], str):
+                raise ValueError("API returned invalid format. Expected strings for analysis fields.")
             
             return CompetitorAnalysisResponse(
                 workflow_id=request.workflow_id,
