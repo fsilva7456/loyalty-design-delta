@@ -7,7 +7,8 @@ from routers import (
     loyalty_objectives,
     loyalty_mechanics,
     cost_estimation,
-    performance_simulation
+    performance_simulation,
+    business_case
 )
 import uvicorn
 import uuid
@@ -37,6 +38,7 @@ app.include_router(loyalty_objectives.router)
 app.include_router(loyalty_mechanics.router)
 app.include_router(cost_estimation.router)
 app.include_router(performance_simulation.router)
+app.include_router(business_case.router)
 
 @app.get("/healthcheck")
 async def healthcheck():
