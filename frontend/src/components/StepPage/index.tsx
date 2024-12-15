@@ -13,6 +13,8 @@ export default function StepPage() {
   const { state, dispatch } = useWorkflow();
   const [currentStep, setCurrentStep] = useState('competitor_analysis');
   const [stepResult, setStepResult] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const steps = [
     'competitor_analysis',
@@ -25,18 +27,26 @@ export default function StepPage() {
   ];
 
   const handleStepSubmit = async (formData: any) => {
+    setError('');
+    setLoading(true);
+
     try {
       const result = await executeStep(currentStep, {
         workflow_id: params.id,
         ...formData
       });
+      
       setStepResult(result);
       dispatch({
         type: 'SET_STEP_RESULT',
         payload: { step: currentStep, result }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error executing step ${currentStep}:`, error);
+      setError(error.message || 'An error occurred while processing your request');
+      setStepResult(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,6 +55,7 @@ export default function StepPage() {
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
       setStepResult(null);
+      setError('');
     } else {
       router.push(`/workflow/${params.id}/results`);
     }
@@ -52,6 +63,7 @@ export default function StepPage() {
 
   const handleRepeat = () => {
     setStepResult(null);
+    setError('');
   };
 
   return (
@@ -63,12 +75,26 @@ export default function StepPage() {
           onNext={handleNext}
           onRepeat={handleRepeat}
         />
+        
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-md">
+            {error}
+          </div>
+        )}
+        
         <div className="mt-8">
-          <StepForm
-            step={currentStep}
-            onSubmit={handleStepSubmit}
-            result={stepResult}
-          />
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Processing...</p>
+            </div>
+          ) : (
+            <StepForm
+              step={currentStep}
+              onSubmit={handleStepSubmit}
+              result={stepResult}
+            />
+          )}
         </div>
       </div>
     </div>
