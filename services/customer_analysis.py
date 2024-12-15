@@ -2,9 +2,7 @@ from openai import OpenAI
 from models.customer_analysis import (
     CustomerAnalysisRequest,
     CustomerAnalysisResponse,
-    CustomerSegment,
-    Demographics,
-    BehavioralMetrics
+    CustomerSegmentOutput
 )
 from fastapi import HTTPException
 import json
@@ -15,38 +13,33 @@ class CustomerAnalysisService:
         self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
     def _construct_prompt(self, request: CustomerAnalysisRequest) -> str:
-        base_prompt = f"""Provide a detailed customer analysis for {request.company_name} in the {request.industry} industry.
-        
-        Include detailed information about:
-        1. Customer Segments (provide 3-5 distinct segments)
-        2. Demographics (age distribution, gender split, location distribution)
-        3. Behavioral Metrics (average spend in USD, purchase frequency in times per year)
-        
-        Format the response as a JSON object with the following structure:
+        segments_text = "\n".join(
+            f"- {seg.segment_name}: {seg.segment_size:,} customers, "
+            f"average spend ${seg.average_spend:.2f}, "
+            f"visit frequency {seg.visit_frequency:.1f} times per year"
+            for seg in request.customer_segments
+        )
+
+        return f"""Analyze the following customer segments for {request.company_name} in the {request.industry} industry:
+
+{segments_text}
+
+Provide a detailed analysis in JSON format with the following structure:
+{{
+    "customer_segments": [
         {{
-            "customer_segments": [
-                {{
-                    "segment_name": "segment name",
-                    "characteristics": "detailed characteristics",
-                    "recommendations": "targeted recommendations"
-                }}
-            ],
-            "demographics": {{
-                "age_distribution": "age breakdown",
-                "gender_split": "gender distribution",
-                "location_distribution": "geographical distribution"
-            }},
-            "behavioral_metrics": {{
-                "average_spend": 123.45,
-                "purchase_frequency": 12.3
-            }}
+            "segment_name": "name of segment",
+            "segment_size": size as integer,
+            "spend_potential": float between 1-10 indicating future spend potential,
+            "churn_risk": float between 0-1 indicating probability of churn,
+            "growth_opportunity": "detailed growth opportunity description"
         }}
-        """
-        
-        if request.additional_context:
-            base_prompt += f"\n\nAdditional context to consider: {request.additional_context}"
-            
-        return base_prompt
+    ],
+    "insights": "comprehensive analysis of overall customer base and key insights"
+}}
+
+Ensure numeric values are within specified ranges and growth opportunities are specific and actionable.
+"""
 
     async def analyze_customers(self, request: CustomerAnalysisRequest) -> CustomerAnalysisResponse:
         try:
@@ -54,7 +47,7 @@ class CustomerAnalysisService:
                 model="gpt-4-turbo-preview",
                 messages=[{
                     "role": "system",
-                    "content": "You are a customer analysis expert with deep knowledge of various industries and consumer behavior."
+                    "content": "You are an expert in customer segmentation and behavior analysis."
                 },
                 {
                     "role": "user",
@@ -65,13 +58,28 @@ class CustomerAnalysisService:
             
             result = json.loads(response.choices[0].message.content)
             
+            # Validate result format
+            if not all(isinstance(seg.get('spend_potential', 0), (int, float)) for seg in result['customer_segments']):
+                raise ValueError("Invalid spend_potential format in response")
+            
+            if not all(isinstance(seg.get('churn_risk', 0), (int, float)) for seg in result['customer_segments']):
+                raise ValueError("Invalid churn_risk format in response")
+            
             return CustomerAnalysisResponse(
                 workflow_id=request.workflow_id,
-                company_name=request.company_name,
-                industry=request.industry,
-                customer_segments=[CustomerSegment(**segment) for segment in result['customer_segments']],
-                demographics=Demographics(**result['demographics']),
-                behavioral_metrics=BehavioralMetrics(**result['behavioral_metrics'])
+                customer_segments=[
+                    CustomerSegmentOutput(
+                        segment_name=seg['segment_name'],
+                        segment_size=next(
+                            (s.segment_size for s in request.customer_segments if s.segment_name == seg['segment_name']),
+                            0
+                        ),
+                        spend_potential=seg['spend_potential'],
+                        churn_risk=seg['churn_risk'],
+                        growth_opportunity=seg['growth_opportunity']
+                    ) for seg in result['customer_segments']
+                ],
+                insights=result['insights']
             )
             
         except Exception as e:
