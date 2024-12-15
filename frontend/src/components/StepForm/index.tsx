@@ -14,6 +14,16 @@ interface FormData {
   include_loyalty_program?: boolean;
 }
 
+interface CompetitorAnalysisResult {
+  workflow_id: string;
+  company_name: string;
+  industry: string;
+  main_competitors: string[];
+  competitor_details: string;
+  loyalty_insights: string;
+  strategic_recommendations: string;
+}
+
 export default function StepForm({ step, onSubmit, result }: StepFormProps) {
   const [formData, setFormData] = useState<FormData>({});
   const [error, setError] = useState<string>('');
@@ -22,13 +32,11 @@ export default function StepForm({ step, onSubmit, result }: StepFormProps) {
     e.preventDefault();
     setError('');
 
-    // Validate required fields
     if (!formData.company_name || !formData.industry) {
       setError('Company name and industry are required');
       return;
     }
 
-    // Add any step-specific default values
     let submitData = { ...formData };
     if (step === 'competitor_analysis') {
       submitData.include_loyalty_program = true;
@@ -42,6 +50,36 @@ export default function StepForm({ step, onSubmit, result }: StepFormProps) {
       ...prev,
       [e.target.name]: e.target.value
     }));
+  };
+
+  const renderCompetitorAnalysisResult = (result: CompetitorAnalysisResult) => {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900">Main Competitors</h3>
+          <ul className="mt-2 list-disc list-inside text-gray-600">
+            {result.main_competitors.map((competitor, index) => (
+              <li key={index}>{competitor}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium text-gray-900">Competitor Details</h3>
+          <p className="mt-2 text-gray-600 whitespace-pre-line">{result.competitor_details}</p>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium text-gray-900">Loyalty Program Insights</h3>
+          <p className="mt-2 text-gray-600 whitespace-pre-line">{result.loyalty_insights}</p>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium text-gray-900">Strategic Recommendations</h3>
+          <p className="mt-2 text-gray-600 whitespace-pre-line">{result.strategic_recommendations}</p>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -94,9 +132,12 @@ export default function StepForm({ step, onSubmit, result }: StepFormProps) {
           </form>
         ) : (
           <div className="prose max-w-none">
-            <pre className="bg-gray-50 p-4 rounded-md overflow-auto">
-              {JSON.stringify(result, null, 2)}
-            </pre>
+            {step === 'competitor_analysis' ? 
+              renderCompetitorAnalysisResult(result as CompetitorAnalysisResult) :
+              <pre className="bg-gray-50 p-4 rounded-md overflow-auto">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            }
           </div>
         )}
       </div>
