@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from routers import competitor_analysis, customer_analysis
+from routers import competitor_analysis, customer_analysis, loyalty_objectives
 import uvicorn
 import uuid
 
@@ -26,6 +26,7 @@ app.add_middleware(
 # Include routers
 app.include_router(competitor_analysis.router)
 app.include_router(customer_analysis.router)
+app.include_router(loyalty_objectives.router)
 
 @app.get("/healthcheck")
 async def healthcheck():
