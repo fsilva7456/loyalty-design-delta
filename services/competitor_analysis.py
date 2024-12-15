@@ -29,7 +29,8 @@ class CompetitorAnalysisService:
 
     async def analyze_competitors(self, request: CompetitorAnalysisRequest) -> CompetitorAnalysisResponse:
         try:
-            response = await self.client.chat.completions.create(
+            # Removed await as OpenAI client methods are not async
+            response = self.client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=[{
                     "role": "system",
