@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from routers import competitor_analysis
+from routers import competitor_analysis, customer_analysis
 import uvicorn
 import uuid
 
@@ -25,6 +25,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(competitor_analysis.router)
+app.include_router(customer_analysis.router)
 
 @app.get("/healthcheck")
 async def healthcheck():
@@ -34,10 +35,6 @@ async def healthcheck():
 async def start_workflow():
     workflow_id = str(uuid.uuid4())
     return {"workflow_id": workflow_id}
-
-@app.post("/step/{step_name}")
-async def execute_step(step_name: str):
-    return {"message": "Step execution placeholder"}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
