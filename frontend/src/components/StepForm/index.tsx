@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import CustomerAnalysisForm from './CustomerAnalysisForm';
 import CustomerAnalysisResult from './CustomerAnalysisResult';
+import CompetitorAnalysisResult from './CompetitorAnalysisResult';
 
 interface StepFormProps {
   step: string;
@@ -89,13 +90,7 @@ export default function StepForm({ step, onSubmit, result }: StepFormProps) {
   const renderResult = () => {
     switch (step) {
       case 'competitor_analysis':
-        return (
-          <div className="prose max-w-none">
-            <pre className="bg-gray-50 p-4 rounded-md overflow-auto">
-              {JSON.stringify(result, null, 2)}
-            </pre>
-          </div>
-        );
+        return <CompetitorAnalysisResult result={result} />;
       
       case 'customer_analysis':
         return <CustomerAnalysisResult result={result} />;
