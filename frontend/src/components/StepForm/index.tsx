@@ -6,6 +6,8 @@ import CustomerAnalysisResult from './CustomerAnalysisResult';
 import CompetitorAnalysisResult from './CompetitorAnalysisResult';
 import LoyaltyObjectivesForm from './LoyaltyObjectivesForm';
 import LoyaltyObjectivesResult from './LoyaltyObjectivesResult';
+import LoyaltyMechanicsForm from './LoyaltyMechanicsForm';
+import LoyaltyMechanicsResult from './LoyaltyMechanicsResult';
 import { useParams } from 'next/navigation';
 
 interface StepFormProps {
@@ -95,10 +97,6 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
         const companyName = customerAnalysisResult?.company_name || competitorAnalysisResult?.company_name || '';
         const industry = customerAnalysisResult?.industry || competitorAnalysisResult?.industry || '';
         
-        console.log('Previous Results:', previousStepResults);
-        console.log('Company Name:', companyName);
-        console.log('Industry:', industry);
-        
         return (
           <LoyaltyObjectivesForm 
             onSubmit={(data) => onSubmit({
@@ -113,6 +111,25 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
           />
         );
       
+      case 'loyalty_mechanics':
+        const customerResult = previousStepResults?.customer_analysis;
+        const objectivesResult = previousStepResults?.loyalty_objectives;
+
+        return (
+          <LoyaltyMechanicsForm
+            onSubmit={(data) => onSubmit({
+              ...data,
+              workflow_id: params.id,
+              company_name: customerResult?.company_name || '',
+              industry: customerResult?.industry || ''
+            })}
+            customerSegments={customerResult?.customer_segments}
+            objectives={objectivesResult?.objectives}
+            company_name={customerResult?.company_name || ''}
+            industry={customerResult?.industry || ''}
+          />
+        );
+
       default:
         return <div>Form not implemented for this step</div>;
     }
@@ -128,6 +145,9 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
       
       case 'loyalty_objectives':
         return <LoyaltyObjectivesResult result={result} />;
+      
+      case 'loyalty_mechanics':
+        return <LoyaltyMechanicsResult result={result} />;
       
       default:
         return (
