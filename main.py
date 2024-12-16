@@ -10,6 +10,7 @@ from routers import (
     performance_simulation,
     business_case
 )
+from openai import OpenAI
 import uvicorn
 import uuid
 import os
@@ -60,6 +61,31 @@ app.include_router(business_case.router)
 @app.get("/healthcheck")
 async def healthcheck():
     return {"status": "healthy"}
+
+@app.get("/test-openai")
+async def test_openai():
+    try:
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="OpenAI API key not configured"
+            )
+            
+        client = OpenAI(api_key=api_key)
+        response = await client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[{
+                "role": "user",
+                "content": "Say hello"
+            }]
+        )
+        return {"status": "success", "message": response.choices[0].message.content}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"OpenAI test failed: {str(e)}"
+        )
 
 @app.post("/start_workflow")
 async def start_workflow():
