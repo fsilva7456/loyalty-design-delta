@@ -8,12 +8,12 @@ def get_cost_estimation_service():
     return CostEstimationService()
 
 @router.post("/step/cost_estimation", response_model=CostEstimationResponse)
-async def estimate_costs(
+async def generate_estimation(
     request: CostEstimationRequest,
     service: CostEstimationService = Depends(get_cost_estimation_service)
 ):
     try:
-        return await service.estimate_costs(request)
+        return await service.generate_estimation(request)
     except Exception as e:
         if isinstance(e, HTTPException):
             raise e
