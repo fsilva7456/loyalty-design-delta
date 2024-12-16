@@ -27,6 +27,22 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
   const [error, setError] = useState<string>('');
   const params = useParams();
 
+  // Helper function to get company name and industry from previous results
+  const getCompanyAndIndustry = () => {
+    const customerAnalysisResult = previousStepResults?.customer_analysis;
+    const competitorAnalysisResult = previousStepResults?.competitor_analysis;
+    const objectivesResult = previousStepResults?.loyalty_objectives;
+    
+    return {
+      companyName: customerAnalysisResult?.company_name || 
+                  competitorAnalysisResult?.company_name || 
+                  objectivesResult?.company_name || '',
+      industry: customerAnalysisResult?.industry || 
+               competitorAnalysisResult?.industry || 
+               objectivesResult?.industry || ''
+    };
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -90,12 +106,8 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
         return <CustomerAnalysisForm onSubmit={onSubmit} />;
       
       case 'loyalty_objectives':
+        const { companyName, industry } = getCompanyAndIndustry();
         const customerAnalysisResult = previousStepResults?.customer_analysis;
-        const competitorAnalysisResult = previousStepResults?.competitor_analysis;
-        
-        // Get company name and industry from either step's results
-        const companyName = customerAnalysisResult?.company_name || competitorAnalysisResult?.company_name || '';
-        const industry = customerAnalysisResult?.industry || competitorAnalysisResult?.industry || '';
         
         return (
           <LoyaltyObjectivesForm 
@@ -112,6 +124,7 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
         );
       
       case 'loyalty_mechanics':
+        const { companyName: mechCompanyName, industry: mechIndustry } = getCompanyAndIndustry();
         const customerResult = previousStepResults?.customer_analysis;
         const objectivesResult = previousStepResults?.loyalty_objectives;
 
@@ -120,13 +133,13 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
             onSubmit={(data) => onSubmit({
               ...data,
               workflow_id: params.id,
-              company_name: customerResult?.company_name || '',
-              industry: customerResult?.industry || ''
+              company_name: mechCompanyName,
+              industry: mechIndustry
             })}
             customerSegments={customerResult?.customer_segments}
             objectives={objectivesResult?.objectives}
-            company_name={customerResult?.company_name || ''}
-            industry={customerResult?.industry || ''}
+            company_name={mechCompanyName}
+            industry={mechIndustry}
           />
         );
 
