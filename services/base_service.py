@@ -6,7 +6,23 @@ from models.regeneration import RegenerationRequest
 
 class BaseService:
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="OpenAI API key not configured"
+            )
+            
+        self.client = OpenAI(
+            api_key=api_key,
+            # Configure default settings
+            default_headers={
+                "OpenAI-Organization": os.getenv('OPENAI_ORG_ID', '')  # Optional org ID
+            },
+            default_query={},
+            timeout=60.0,  # 60 second timeout
+            max_retries=2,
+        )
         self._original_prompt = None
 
     def _construct_regeneration_prompt(
