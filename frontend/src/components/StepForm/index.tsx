@@ -23,6 +23,11 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
   const [formData, setFormData] = useState<FormData>({});
   const [error, setError] = useState<string>('');
 
+  // Debug log
+  console.log('Step:', step);
+  console.log('Result:', result);
+  console.log('Previous Results:', previousStepResults);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -110,6 +115,7 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
         return <CustomerAnalysisResult result={result} />;
       
       case 'loyalty_objectives':
+        console.log('Rendering loyalty objectives result:', result);
         return <LoyaltyObjectivesResult result={result} />;
       
       default:
