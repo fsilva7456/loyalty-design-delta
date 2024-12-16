@@ -93,6 +93,7 @@ export default function StepPage() {
               step={currentStep}
               onSubmit={handleStepSubmit}
               result={stepResult}
+              previousStepResults={state.stepResults}
             />
           )}
         </div>
