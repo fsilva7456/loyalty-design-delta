@@ -2,7 +2,7 @@ interface StepNavigatorProps {
   steps: string[];
   currentStep: string;
   onNext: () => void;
-  onRepeat: () => void;
+  onRepeat: (feedback: string) => void;
 }
 
 export default function StepNavigator({
@@ -11,7 +11,13 @@ export default function StepNavigator({
   onNext,
   onRepeat
 }: StepNavigatorProps) {
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const currentIndex = steps.indexOf(currentStep);
+
+  const handleRepeat = (feedback: string) => {
+    onRepeat(feedback);
+    setShowFeedbackModal(false);
+  };
 
   return (
     <div className="space-y-4">
@@ -32,7 +38,7 @@ export default function StepNavigator({
       </nav>
       <div className="flex justify-center space-x-4">
         <button
-          onClick={onRepeat}
+          onClick={() => setShowFeedbackModal(true)}
           className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
         >
           Repeat Step
@@ -44,6 +50,13 @@ export default function StepNavigator({
           Next Step
         </button>
       </div>
+
+      <RegenerationModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        onSubmit={handleRepeat}
+        title={`Regenerate ${currentStep.replace('_', ' ').charAt(0).toUpperCase() + currentStep.slice(1)}`}
+      />
     </div>
   );
 }
