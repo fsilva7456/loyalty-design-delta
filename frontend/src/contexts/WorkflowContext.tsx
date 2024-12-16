@@ -3,7 +3,7 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 
 interface WorkflowState {
-  workflowId: string | null;
+  id: string | null;
   stepResults: Record<string, any>;
   businessCase: any | null;
 }
@@ -14,7 +14,7 @@ type WorkflowAction =
   | { type: 'SET_BUSINESS_CASE'; payload: any };
 
 const initialState: WorkflowState = {
-  workflowId: null,
+  id: null,
   stepResults: {},
   businessCase: null,
 };
@@ -27,7 +27,7 @@ const WorkflowContext = createContext<{
 function workflowReducer(state: WorkflowState, action: WorkflowAction): WorkflowState {
   switch (action.type) {
     case 'SET_WORKFLOW_ID':
-      return { ...state, workflowId: action.payload };
+      return { ...state, id: action.payload };
     case 'SET_STEP_RESULT':
       return {
         ...state,
