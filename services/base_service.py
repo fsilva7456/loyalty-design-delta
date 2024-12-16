@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from fastapi import HTTPException
 import json
 import os
@@ -17,7 +17,8 @@ class BaseService:
                     detail="OpenAI API key not configured"
                 )
                 
-            self.client = OpenAI(api_key=api_key)
+            # Use AsyncOpenAI client without any additional configuration
+            self.client = AsyncOpenAI(api_key=api_key)
             self._original_prompt = None
             logger.info("OpenAI client initialized successfully")
             
