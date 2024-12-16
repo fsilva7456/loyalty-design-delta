@@ -1,4 +1,4 @@
-from openai import OpenAI
+from .base_service import BaseService
 from models.cost_estimation import (
     CostEstimationRequest,
     CostEstimationResponse,
@@ -7,13 +7,13 @@ from models.cost_estimation import (
     MemberCost,
     ROIProjection
 )
+from models.regeneration import RegenerationRequest
 from fastapi import HTTPException
-import json
-import os
 
-class CostEstimationService:
+class CostEstimationService(BaseService):
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        super().__init__()
+        self.system_message = "You are an expert in loyalty program implementation and cost analysis."
 
     def _construct_prompt(self, request: CostEstimationRequest) -> str:
         mechanics_text = '\n'.join(
@@ -29,7 +29,7 @@ class CostEstimationService:
             for seg in request.customer_segments
         )
 
-        return f"""Provide a detailed cost estimation for implementing a loyalty program for {request.company_name} in the {request.industry} industry.
+        self._original_prompt = f"""Provide a detailed cost estimation for implementing a loyalty program for {request.company_name} in the {request.industry} industry.
 
 Selected Program Mechanics:
 {mechanics_text}
@@ -86,38 +86,49 @@ Provide realistic cost estimates that:
 2. Consider industry standards
 3. Scale appropriately with member base
 4. Include all major cost categories
-5. Show realistic ROI projections
-"""
+5. Show realistic ROI projections"""
+        return self._original_prompt
 
     async def generate_estimation(self, request: CostEstimationRequest) -> CostEstimationResponse:
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4-turbo-preview",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an expert in loyalty program implementation and cost analysis."
-                },
-                {
-                    "role": "user",
-                    "content": self._construct_prompt(request)
-                }],
-                response_format={"type": "json_object"}
-            )
-            
-            result = json.loads(response.choices[0].message.content)
-            
-            return CostEstimationResponse(
-                workflow_id=request.workflow_id,
-                setup_costs=[SetupCost(**cost) for cost in result['setup_costs']],
-                operational_costs=[OperationalCost(**cost) for cost in result['operational_costs']],
-                member_costs=[MemberCost(**cost) for cost in result['member_costs']],
-                total_setup_cost=result['total_setup_cost'],
-                total_monthly_operational_cost=result['total_monthly_operational_cost'],
-                total_monthly_member_cost=result['total_monthly_member_cost'],
-                roi_projections=[ROIProjection(**proj) for proj in result['roi_projections']],
-                cost_saving_opportunities=result['cost_saving_opportunities'],
-                risk_factors=result['risk_factors']
-            )
-            
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error generating cost estimation: {str(e)}")
+        result = await self._generate_openai_response(
+            self._construct_prompt(request),
+            self.system_message
+        )
+        
+        return CostEstimationResponse(
+            workflow_id=request.workflow_id,
+            setup_costs=[SetupCost(**cost) for cost in result['setup_costs']],
+            operational_costs=[OperationalCost(**cost) for cost in result['operational_costs']],
+            member_costs=[MemberCost(**cost) for cost in result['member_costs']],
+            total_setup_cost=result['total_setup_cost'],
+            total_monthly_operational_cost=result['total_monthly_operational_cost'],
+            total_monthly_member_cost=result['total_monthly_member_cost'],
+            roi_projections=[ROIProjection(**proj) for proj in result['roi_projections']],
+            cost_saving_opportunities=result['cost_saving_opportunities'],
+            risk_factors=result['risk_factors']
+        )
+
+    async def regenerate_estimation(self, request: RegenerationRequest) -> CostEstimationResponse:
+        regeneration_prompt = self._construct_regeneration_prompt(
+            previous_result=request.previous_result,
+            user_feedback=request.user_feedback,
+            original_prompt=self._original_prompt
+        )
+        
+        result = await self._generate_openai_response(
+            regeneration_prompt,
+            self.system_message
+        )
+        
+        return CostEstimationResponse(
+            workflow_id=request.workflow_id,
+            setup_costs=[SetupCost(**cost) for cost in result['setup_costs']],
+            operational_costs=[OperationalCost(**cost) for cost in result['operational_costs']],
+            member_costs=[MemberCost(**cost) for cost in result['member_costs']],
+            total_setup_cost=result['total_setup_cost'],
+            total_monthly_operational_cost=result['total_monthly_operational_cost'],
+            total_monthly_member_cost=result['total_monthly_member_cost'],
+            roi_projections=[ROIProjection(**proj) for proj in result['roi_projections']],
+            cost_saving_opportunities=result['cost_saving_opportunities'],
+            risk_factors=result['risk_factors']
+        )
