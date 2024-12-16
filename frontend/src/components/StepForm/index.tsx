@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CustomerAnalysisForm from './CustomerAnalysisForm';
 import CustomerAnalysisResult from './CustomerAnalysisResult';
 import CompetitorAnalysisResult from './CompetitorAnalysisResult';
@@ -10,11 +10,14 @@ import LoyaltyMechanicsForm from './LoyaltyMechanicsForm';
 import LoyaltyMechanicsResult from './LoyaltyMechanicsResult';
 import CostEstimationForm from './CostEstimationForm';
 import CostEstimationResult from './CostEstimationResult';
+import RegenerationModal from '../RegenerationModal';
+import { useRegeneration } from './RegenerationContext';
 import { useParams } from 'next/navigation';
 
 interface StepFormProps {
   step: string;
   onSubmit: (data: any) => void;
+  onRegenerate?: (feedback: string) => void;
   result: any;
   previousStepResults?: Record<string, any>;
 }
@@ -24,12 +27,27 @@ interface FormData {
   industry?: string;
 }
 
-export default function StepForm({ step, onSubmit, result, previousStepResults = {} }: StepFormProps) {
+export default function StepForm({ 
+  step, 
+  onSubmit, 
+  onRegenerate,
+  result, 
+  previousStepResults = {} 
+}: StepFormProps) {
   const [formData, setFormData] = useState<FormData>({});
   const [error, setError] = useState<string>('');
+  const [isRegenerationModalOpen, setIsRegenerationModalOpen] = useState(false);
   const params = useParams();
+  const { setPreviousResult, setOriginalRequest } = useRegeneration();
 
-  // Helper function to get company name and industry from previous results
+  // Store result and request when they change
+  useEffect(() => {
+    if (result) {
+      setPreviousResult(result);
+    }
+  }, [result, setPreviousResult]);
+
+  // Helper function to get company name and industry
   const getCompanyAndIndustry = () => {
     const customerAnalysisResult = previousStepResults?.customer_analysis;
     const competitorAnalysisResult = previousStepResults?.competitor_analysis;
@@ -55,6 +73,12 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
     }
 
     onSubmit(formData);
+  };
+
+  const handleRegenerate = async (feedback: string) => {
+    if (onRegenerate) {
+      onRegenerate(feedback);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -113,12 +137,7 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
         
         return (
           <LoyaltyObjectivesForm 
-            onSubmit={(data) => onSubmit({
-              ...data,
-              workflow_id: params.id,
-              company_name: companyName,
-              industry: industry
-            })}
+            onSubmit={onSubmit}
             customerSegments={customerAnalysisResult?.customer_segments}
             company_name={companyName}
             industry={industry}
@@ -132,12 +151,7 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
 
         return (
           <LoyaltyMechanicsForm
-            onSubmit={(data) => onSubmit({
-              ...data,
-              workflow_id: params.id,
-              company_name: mechCompanyName,
-              industry: mechIndustry
-            })}
+            onSubmit={onSubmit}
             customerSegments={customerResult?.customer_segments}
             objectives={objectivesResult?.objectives}
             company_name={mechCompanyName}
@@ -152,12 +166,7 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
 
         return (
           <CostEstimationForm
-            onSubmit={(data) => onSubmit({
-              ...data,
-              workflow_id: params.id,
-              company_name: costCompanyName,
-              industry: costIndustry
-            })}
+            onSubmit={onSubmit}
             customerSegments={custResult?.customer_segments}
             selectedMechanics={mechResult?.recommended_mechanics}
             company_name={costCompanyName}
@@ -207,7 +216,26 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
           </div>
         )}
         
-        {!result ? renderForm() : renderResult()}
+        {!result ? renderForm() : (
+          <>
+            {renderResult()}
+            <div className="mt-4">
+              <button
+                onClick={() => setIsRegenerationModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Regenerate Response
+              </button>
+            </div>
+          </>
+        )}
+
+        <RegenerationModal
+          isOpen={isRegenerationModalOpen}
+          onClose={() => setIsRegenerationModalOpen(false)}
+          onSubmit={handleRegenerate}
+          title={`Regenerate ${step.replace('_', ' ').charAt(0).toUpperCase() + step.slice(1)}`}
+        />
       </div>
     </div>
   );
