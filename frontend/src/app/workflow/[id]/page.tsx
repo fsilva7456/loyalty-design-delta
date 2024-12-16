@@ -27,11 +27,13 @@ function WorkflowContent({ params }: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-9eb2.up.railway.app';
+
   const handleStepSubmit = async (data: any) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/step/${currentStep}`, {
+      const response = await fetch(`${API_URL}/step/${currentStep}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +65,7 @@ function WorkflowContent({ params }: { params: { id: string } }) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/step/${currentStep}/regenerate`, {
+      const response = await fetch(`${API_URL}/step/${currentStep}/regenerate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
