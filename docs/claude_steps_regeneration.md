@@ -1,14 +1,15 @@
 # Regeneration Feature Implementation Steps
 
-Implementing regeneration functionality across all workflow steps.
-
 [Previous content remains the same...]
 
-### Step 4: Deployment Fixes ✅
+### Step 4: API Integration Fixes ✅
+- [x] Fix API URL Configuration
+  - Added NEXT_PUBLIC_API_URL environment variable
+  - Added fallback URL for development
+  - Updated all API calls to use correct URL
 - [x] Fix CORS Configuration
   - Added allowed origins for all environments
   - Added proper headers
-  - Added environment variable support
   - Added support for Vercel preview URLs
   - Added regex pattern for dynamic URLs
 - [x] Fixed Model Imports
@@ -21,55 +22,61 @@ Implementing regeneration functionality across all workflow steps.
   - Specified correct versions
   - Added all necessary packages
 
-[Rest of the content remains the same...]
+[Previous content remains the same...]
 
-## Deployment Configuration
+## Environment Setup
 
-### CORS Settings
-The backend is configured to allow requests from:
-1. Local Development:
-   - http://localhost:3000
-   - http://localhost:8000
+### Backend (.env)
+```bash
+# Railway environment variables
+FRONTEND_URL=https://loyalty-design-delta.vercel.app
+OPENAI_API_KEY=your_api_key
+```
 
-2. Production:
-   - https://loyalty-design-delta.vercel.app
+### Frontend (.env)
+```bash
+# Vercel environment variables
+NEXT_PUBLIC_API_URL=https://web-production-9eb2.up.railway.app
+```
 
-3. Preview Deployments:
-   - https://loyalty-design-delta-*.vercel.app
-   - https://loyalty-design-delta-git-*.vercel.app
-   - Generic pattern: https://*.vercel.app
-   - Regex pattern: https://loyalty-design-delta.*\.vercel\.app
+## Deployment Steps
 
-### Deployment Steps
-1. Backend (Railway):
-   ```bash
-   # Install dependencies
-   pip install -r requirements.txt
+### Backend (Railway)
+1. Set environment variables in Railway dashboard
+2. Deploy with updated CORS configuration
+3. Verify API is accessible
 
-   # Set environment variables
-   FRONTEND_URL=https://loyalty-design-delta.vercel.app
-   OPENAI_API_KEY=your_api_key
-   ```
+### Frontend (Vercel)
+1. Add environment variables in Vercel dashboard:
+   - NEXT_PUBLIC_API_URL
+2. Deploy frontend application
+3. Verify API connection
 
-2. Frontend (Vercel):
-   ```bash
-   # Set environment variables
-   NEXT_PUBLIC_API_URL=https://web-production-9eb2.up.railway.app
-   ```
+## Troubleshooting
 
-### Troubleshooting
-1. CORS Issues:
-   - Check allowed origins in main.py
-   - Verify frontend URL matches patterns
-   - Clear browser cache
-   - Check network requests in browser dev tools
+### API Connection Issues
+1. Check environment variables:
+   - Verify NEXT_PUBLIC_API_URL is set
+   - Check for typos in URLs
+   - Ensure protocol (https) is included
 
-2. Import Errors:
-   - Verify all models are defined
-   - Check __init__.py files
-   - Confirm requirements are installed
+2. CORS Issues:
+   - Verify frontend URL matches allowed patterns
+   - Check browser console for CORS errors
+   - Confirm CORS headers in API response
 
-3. Environment Variables:
-   - Verify all required variables are set
-   - Check for typos in variable names
-   - Ensure values are properly formatted
+3. API Errors:
+   - Check API endpoint URLs
+   - Verify request payload format
+   - Check API logs for errors
+
+### Network Issues
+1. API Timeouts:
+   - Check API health endpoint
+   - Verify Railway service is running
+   - Check for rate limiting
+
+2. Connection Errors:
+   - Verify API is accessible
+   - Check for DNS issues
+   - Confirm network connectivity
