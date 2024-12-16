@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import RegenerationModal from '../RegenerationModal';
+
 interface StepNavigatorProps {
   steps: string[];
   currentStep: string;
