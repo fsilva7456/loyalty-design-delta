@@ -8,6 +8,8 @@ import LoyaltyObjectivesForm from './LoyaltyObjectivesForm';
 import LoyaltyObjectivesResult from './LoyaltyObjectivesResult';
 import LoyaltyMechanicsForm from './LoyaltyMechanicsForm';
 import LoyaltyMechanicsResult from './LoyaltyMechanicsResult';
+import CostEstimationForm from './CostEstimationForm';
+import CostEstimationResult from './CostEstimationResult';
 import { useParams } from 'next/navigation';
 
 interface StepFormProps {
@@ -143,6 +145,26 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
           />
         );
 
+      case 'cost_estimation':
+        const { companyName: costCompanyName, industry: costIndustry } = getCompanyAndIndustry();
+        const custResult = previousStepResults?.customer_analysis;
+        const mechResult = previousStepResults?.loyalty_mechanics;
+
+        return (
+          <CostEstimationForm
+            onSubmit={(data) => onSubmit({
+              ...data,
+              workflow_id: params.id,
+              company_name: costCompanyName,
+              industry: costIndustry
+            })}
+            customerSegments={custResult?.customer_segments}
+            selectedMechanics={mechResult?.recommended_mechanics}
+            company_name={costCompanyName}
+            industry={costIndustry}
+          />
+        );
+
       default:
         return <div>Form not implemented for this step</div>;
     }
@@ -161,6 +183,9 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
       
       case 'loyalty_mechanics':
         return <LoyaltyMechanicsResult result={result} />;
+
+      case 'cost_estimation':
+        return <CostEstimationResult result={result} />;
       
       default:
         return (
