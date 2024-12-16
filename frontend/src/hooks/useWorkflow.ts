@@ -14,9 +14,9 @@ export const useWorkflow = () => {
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
   const { get, post } = useApi();
 
-  const fetchWorkflow = async (workflowId: string) => {
+  const fetchWorkflow = async (id: string) => {
     try {
-      const data = await get(`/api/workflows/${workflowId}`);
+      const data = await get(`/api/workflows/${id}`);
       setWorkflow(data);
       return data;
     } catch (error) {
