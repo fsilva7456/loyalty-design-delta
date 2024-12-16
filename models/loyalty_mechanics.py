@@ -1,28 +1,23 @@
 from pydantic import BaseModel, Field
 from typing import List
 
-class ObjectiveInput(BaseModel):
-    objective: str
-    rationale: str
-
-class MechanicDetail(BaseModel):
+class MechanicsRecommendation(BaseModel):
     name: str
     description: str
-    target_behavior: str
-    expected_outcome: str
-
-class ObjectiveMechanics(BaseModel):
-    objective: str
-    mechanics: List[MechanicDetail]
+    benefits: List[str]
+    implementation_complexity: str
+    cost_estimate: str
+    expected_impact: str
 
 class LoyaltyMechanicsRequest(BaseModel):
     workflow_id: str
     company_name: str = Field(..., min_length=1)
     industry: str = Field(..., min_length=1)
-    objectives: List[ObjectiveInput] = Field(..., min_items=1)
+    objectives: List[dict] = Field(..., min_items=1)
+    customer_segments: List[dict] = Field(..., min_items=1)
 
 class LoyaltyMechanicsResponse(BaseModel):
     workflow_id: str
-    company_name: str
-    industry: str
-    mechanics: List[ObjectiveMechanics]
+    recommended_mechanics: List[MechanicsRecommendation]
+    implementation_roadmap: str
+    success_metrics: List[str]
