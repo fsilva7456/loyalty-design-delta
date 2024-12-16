@@ -9,13 +9,18 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-9eb2.up.railway.app';
+
   const handleStartClick = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-9eb2.up.railway.app';
-      const response = await axios.post(`${API_URL}/start_workflow`);
+      const response = await axios.post(`${API_URL}/start_workflow`, {}, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       
       if (response.data?.workflow_id) {
         router.push(`/workflow/${response.data.workflow_id}`);
