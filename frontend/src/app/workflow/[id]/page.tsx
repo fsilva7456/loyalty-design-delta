@@ -1,8 +1,9 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import StepPage from '@/components/StepPage';
+import WorkflowPage from '@/components/WorkflowPage';
 
-export default function WorkflowStep() {
-  return <StepPage />;
+export default function Workflow() {
+  const { id } = useParams();
+  return <WorkflowPage id={id as string} />;
 }
