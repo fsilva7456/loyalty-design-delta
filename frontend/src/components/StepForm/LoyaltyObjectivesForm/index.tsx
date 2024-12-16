@@ -19,28 +19,34 @@ export default function LoyaltyObjectivesForm({
   company_name = '',
   industry = ''
 }: LoyaltyObjectivesFormProps) {
-  console.log('Form Props:', { customerSegments, company_name, industry });
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Format the data according to the backend's expected schema
-    const formData = {
-      workflow_id: new URLSearchParams(window.location.search).get('workflow_id') || '',
-      company_name: company_name,
-      industry: industry,
-      customer_segments: customerSegments.map(segment => ({
-        segment_name: segment.segment_name,
-        segment_size: segment.segment_size,
-        spend_potential: segment.spend_potential,
-        churn_risk: segment.churn_risk,
-        growth_opportunity: segment.growth_opportunity
-      }))
-    };
+    if (!company_name || !industry) {
+      console.error('Missing required data:', { company_name, industry });
+      return;
+    }
 
-    console.log('Submitting data:', formData);
-    onSubmit(formData);
+    console.log('Submitting loyalty objectives with data:', {
+      company_name,
+      industry,
+      customerSegments
+    });
+
+    onSubmit({
+      company_name,
+      industry,
+      customer_segments: customerSegments
+    });
   };
+
+  if (!customerSegments?.length) {
+    return (
+      <div className="text-center py-4 text-gray-500">
+        No customer segments available. Please complete the customer analysis step first.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -95,9 +101,16 @@ export default function LoyaltyObjectivesForm({
           </p>
         </div>
 
+        {(!company_name || !industry) && (
+          <div className="text-red-600 text-sm">
+            Warning: Missing company name or industry data. Please complete previous steps first.
+          </div>
+        )}
+
         <button
           type="submit"
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          disabled={!company_name || !industry}
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Generate Objectives
         </button>
