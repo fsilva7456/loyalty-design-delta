@@ -1,59 +1,62 @@
-from openai import OpenAI
-from models.competitor_analysis import CompetitorAnalysisRequest, CompetitorAnalysisResponse
+from .base_service import BaseService
+from models.competitor_analysis import CompetitorAnalysisRequest, CompetitorAnalysisResponse, Competitor
+from models.regeneration import RegenerationRequest
 from fastapi import HTTPException
-import json
-import os
 
-class CompetitorAnalysisService:
+class CompetitorAnalysisService(BaseService):
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        super().__init__()
+        self.system_message = "You are an expert in competitive analysis and market research."
 
     def _construct_prompt(self, request: CompetitorAnalysisRequest) -> str:
-        return f"""Analyze the competitive landscape for {request.company_name} in the {request.industry} industry.
-        Include loyalty program details: {request.include_loyalty_program}.
-        
-        Provide a detailed analysis in JSON format with the following structure:
+        self._original_prompt = f"""Analyze the competitive landscape for {request.company_name} in the {request.industry} industry.
+
+Provide market analysis in JSON format with the following structure:
+{{
+    "competitors": [
         {{
-            "main_competitors": ["competitor1", "competitor2", ...],
-            "competitor_details": "detailed analysis of main competitors including their market position, target demographics, and key differentiators",
-            "loyalty_insights": "analysis of competitors' loyalty programs and their weaknesses",
-            "strategic_recommendations": "strategic recommendations for {request.company_name}"  
+            "name": "Competitor name",
+            "strengths": ["Strength 1", "Strength 2"],
+            "weaknesses": ["Weakness 1", "Weakness 2"],
+            "loyalty_programs": ["Program 1", "Program 2"]
         }}
-        
-        Ensure all fields except main_competitors are strings, not nested objects.
-        Be detailed but keep all analysis in a single text field.
-        """
+    ],
+    "market_insights": "Overall market analysis"
+}}
+
+Ensure to:
+1. Identify key competitors
+2. Analyze their strengths and weaknesses
+3. Review their loyalty programs
+4. Provide actionable insights"""
+        return self._original_prompt
 
     async def analyze_competitors(self, request: CompetitorAnalysisRequest) -> CompetitorAnalysisResponse:
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4-turbo-preview",
-                messages=[{
-                    "role": "system",
-                    "content": "You are a competitive analysis expert with deep knowledge of various industries and their loyalty programs."
-                },
-                {
-                    "role": "user",
-                    "content": self._construct_prompt(request)
-                }],
-                response_format={"type": "json_object"}
-            )
-            
-            result = json.loads(response.choices[0].message.content)
-            
-            # Validate result structure
-            if not isinstance(result['competitor_details'], str) or not isinstance(result['loyalty_insights'], str):
-                raise ValueError("API returned invalid format. Expected strings for analysis fields.")
-            
-            return CompetitorAnalysisResponse(
-                workflow_id=request.workflow_id,
-                company_name=request.company_name,
-                industry=request.industry,
-                main_competitors=result['main_competitors'],
-                competitor_details=result['competitor_details'],
-                loyalty_insights=result['loyalty_insights'],
-                strategic_recommendations=result['strategic_recommendations']
-            )
-            
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error analyzing competitors: {str(e)}")
+        result = await self._generate_openai_response(
+            self._construct_prompt(request),
+            self.system_message
+        )
+        
+        return CompetitorAnalysisResponse(
+            workflow_id=request.workflow_id,
+            competitors=[Competitor(**comp) for comp in result['competitors']],
+            market_insights=result['market_insights']
+        )
+
+    async def regenerate_analysis(self, request: RegenerationRequest) -> CompetitorAnalysisResponse:
+        regeneration_prompt = self._construct_regeneration_prompt(
+            previous_result=request.previous_result,
+            user_feedback=request.user_feedback,
+            original_prompt=self._original_prompt
+        )
+        
+        result = await self._generate_openai_response(
+            regeneration_prompt,
+            self.system_message
+        )
+        
+        return CompetitorAnalysisResponse(
+            workflow_id=request.workflow_id,
+            competitors=[Competitor(**comp) for comp in result['competitors']],
+            market_insights=result['market_insights']
+        )
