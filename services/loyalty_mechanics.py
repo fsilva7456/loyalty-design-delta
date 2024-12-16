@@ -2,8 +2,7 @@ from openai import OpenAI
 from models.loyalty_mechanics import (
     LoyaltyMechanicsRequest,
     LoyaltyMechanicsResponse,
-    ObjectiveMechanics,
-    MechanicDetail
+    MechanicsRecommendation
 )
 from fastapi import HTTPException
 import json
@@ -14,40 +13,49 @@ class LoyaltyMechanicsService:
         self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
     def _construct_prompt(self, request: LoyaltyMechanicsRequest) -> str:
-        objectives_text = "\n".join(
-            f"- {obj.objective}\nRationale: {obj.rationale}\n"
+        objectives_text = '\n'.join(
+            f"- {obj['objective']}: {obj['rationale']}"
             for obj in request.objectives
         )
 
-        return f"""Based on the following loyalty program objectives for {request.company_name} in the {request.industry} industry, suggest 3 loyalty mechanics for each objective.
+        segments_text = '\n'.join(
+            f"- {seg['segment_name']}\n" \
+            f"  Size: {seg['segment_size']:,} customers\n" \
+            f"  Spend Potential: {seg['spend_potential']:.1f}/10\n" \
+            f"  Churn Risk: {seg['churn_risk']*100:.1f}%"
+            for seg in request.customer_segments
+        )
+
+        return f"""Based on the following information for {request.company_name} in the {request.industry} industry:
 
 Objectives:
 {objectives_text}
 
-For each objective, provide exactly 3 loyalty mechanics. Format the response as a JSON object with the following structure:
+Customer Segments:
+{segments_text}
+
+Provide loyalty program mechanics recommendations in JSON format with the following structure:
 {{
-    "mechanics": [
+    "recommended_mechanics": [
         {{
-            "objective": "Original objective statement",
-            "mechanics": [
-                {{
-                    "name": "Name of the mechanic",
-                    "description": "Detailed description of how the mechanic works",
-                    "target_behavior": "Specific behavior this mechanic aims to encourage",
-                    "expected_outcome": "Expected results and impact on business metrics"
-                }}
-            ]
+            "name": "Mechanic name",
+            "description": "Detailed description",
+            "benefits": ["Benefit 1", "Benefit 2", ...],
+            "implementation_complexity": "Low/Medium/High with explanation",
+            "cost_estimate": "Cost range and factors",
+            "expected_impact": "Expected impact on objectives"
         }}
-    ]
+    ],
+    "implementation_roadmap": "Phased implementation plan",
+    "success_metrics": ["Metric 1", "Metric 2", ...]
 }}
 
-Ensure each mechanic:
-1. Is specific and implementable
-2. Directly supports its objective
-3. Has clear behavioral targets
-4. Includes measurable outcomes
-5. Is relevant to the industry
-        """
+Provide 3-4 mechanics that:
+1. Directly support the stated objectives
+2. Are appropriate for the customer segments
+3. Can be realistically implemented
+4. Offer clear value to both business and customers
+"""
 
     async def generate_mechanics(self, request: LoyaltyMechanicsRequest) -> LoyaltyMechanicsResponse:
         try:
@@ -55,7 +63,7 @@ Ensure each mechanic:
                 model="gpt-4-turbo-preview",
                 messages=[{
                     "role": "system",
-                    "content": "You are an expert in loyalty program design and behavioral economics."
+                    "content": "You are an expert in loyalty program design and implementation."
                 },
                 {
                     "role": "user",
@@ -68,14 +76,12 @@ Ensure each mechanic:
             
             return LoyaltyMechanicsResponse(
                 workflow_id=request.workflow_id,
-                company_name=request.company_name,
-                industry=request.industry,
-                mechanics=[
-                    ObjectiveMechanics(
-                        objective=mech["objective"],
-                        mechanics=[MechanicDetail(**m) for m in mech["mechanics"]]
-                    ) for mech in result["mechanics"]
-                ]
+                recommended_mechanics=[
+                    MechanicsRecommendation(**mech)
+                    for mech in result['recommended_mechanics']
+                ],
+                implementation_roadmap=result['implementation_roadmap'],
+                success_metrics=result['success_metrics']
             )
             
         except Exception as e:
