@@ -2,7 +2,10 @@ from openai import OpenAI
 from models.cost_estimation import (
     CostEstimationRequest,
     CostEstimationResponse,
-    CostEstimate
+    SetupCost,
+    OperationalCost,
+    MemberCost,
+    ROIProjection
 )
 from fastapi import HTTPException
 import json
@@ -13,58 +16,86 @@ class CostEstimationService:
         self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
     def _construct_prompt(self, request: CostEstimationRequest) -> str:
-        mechanics_text = "\n".join(
-            f"- {mech.name}: {mech.description}\n  Target behavior: {mech.target_behavior}\n  Expected outcome: {mech.expected_outcome}"
-            for mech in request.mechanics
+        mechanics_text = '\n'.join(
+            f"- {mech['name']}:\n" \
+            f"  Description: {mech['description']}\n" \
+            f"  Complexity: {mech['implementation_complexity']}"
+            for mech in request.selected_mechanics
         )
-        
-        segments_text = "\n".join(
-            f"- {seg.segment_name}: {seg.segment_size:,} customers"
+
+        segments_text = '\n'.join(
+            f"- {seg['segment_name']}:\n" \
+            f"  Size: {seg['segment_size']:,} customers"
             for seg in request.customer_segments
         )
 
-        return f"""Estimate the costs of implementing the following loyalty mechanics for {request.company_name} in the {request.industry} industry.
+        return f"""Provide a detailed cost estimation for implementing a loyalty program for {request.company_name} in the {request.industry} industry.
 
-Loyalty Mechanics:
+Selected Program Mechanics:
 {mechanics_text}
 
 Customer Segments:
 {segments_text}
 
-Provide a detailed cost analysis including:
-1. Cost per customer for each mechanic and segment
-2. Total cost per segment
-3. Overall program cost
+Total Members: {request.total_members:,}
 
-Format the response as a JSON object with the following structure:
+Provide cost estimations in JSON format with the following structure:
 {{
-    "cost_estimates": [
+    "setup_costs": [
         {{
-            "mechanic_name": "name of the mechanic",
-            "segment_name": "name of the segment",
-            "cost_per_customer": 123.45,
-            "total_segment_cost": 123456.78
+            "category": "Category name",
+            "description": "Detailed description",
+            "amount": 1000.00,
+            "timeline_months": 3
         }}
     ],
-    "overall_program_cost": 1234567.89,
-    "rationale": "Detailed explanation of cost estimates and assumptions"
+    "operational_costs": [
+        {{
+            "category": "Category name",
+            "description": "Detailed description",
+            "monthly_amount": 500.00,
+            "scaling_factor": "Description of how cost scales"
+        }}
+    ],
+    "member_costs": [
+        {{
+            "category": "Category name",
+            "description": "Detailed description",
+            "cost_per_member": 0.50,
+            "affected_segments": ["segment names"]
+        }}
+    ],
+    "total_setup_cost": 10000.00,
+    "total_monthly_operational_cost": 2000.00,
+    "total_monthly_member_cost": 1000.00,
+    "roi_projections": [
+        {{
+            "timeline_months": 12,
+            "projected_revenue": 50000.00,
+            "total_cost": 30000.00,
+            "net_benefit": 20000.00,
+            "roi_percentage": 66.67
+        }}
+    ],
+    "cost_saving_opportunities": ["List of opportunities"],
+    "risk_factors": ["List of risk factors"]
 }}
 
-Ensure estimates consider:
-1. Implementation costs
-2. Reward/incentive costs
-3. Operational overhead
-4. Industry benchmarks
-5. Customer segment characteristics
-        """
+Provide realistic cost estimates that:
+1. Account for implementation complexity
+2. Consider industry standards
+3. Scale appropriately with member base
+4. Include all major cost categories
+5. Show realistic ROI projections
+"""
 
-    async def estimate_costs(self, request: CostEstimationRequest) -> CostEstimationResponse:
+    async def generate_estimation(self, request: CostEstimationRequest) -> CostEstimationResponse:
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=[{
                     "role": "system",
-                    "content": "You are an expert in loyalty program cost analysis and financial modeling."
+                    "content": "You are an expert in loyalty program implementation and cost analysis."
                 },
                 {
                     "role": "user",
@@ -77,12 +108,16 @@ Ensure estimates consider:
             
             return CostEstimationResponse(
                 workflow_id=request.workflow_id,
-                company_name=request.company_name,
-                industry=request.industry,
-                cost_estimates=[CostEstimate(**est) for est in result['cost_estimates']],
-                overall_program_cost=result['overall_program_cost'],
-                rationale=result['rationale']
+                setup_costs=[SetupCost(**cost) for cost in result['setup_costs']],
+                operational_costs=[OperationalCost(**cost) for cost in result['operational_costs']],
+                member_costs=[MemberCost(**cost) for cost in result['member_costs']],
+                total_setup_cost=result['total_setup_cost'],
+                total_monthly_operational_cost=result['total_monthly_operational_cost'],
+                total_monthly_member_cost=result['total_monthly_member_cost'],
+                roi_projections=[ROIProjection(**proj) for proj in result['roi_projections']],
+                cost_saving_opportunities=result['cost_saving_opportunities'],
+                risk_factors=result['risk_factors']
             )
             
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error estimating costs: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error generating cost estimation: {str(e)}")
