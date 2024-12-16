@@ -24,8 +24,12 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
 function WorkflowContent({ params }: { params: { id: string } }) {
   const [currentStep, setCurrentStep] = useState('competitor_analysis');
   const [stepResults, setStepResults] = useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleStepSubmit = async (data: any) => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/step/${currentStep}`, {
         method: 'POST',
@@ -49,11 +53,15 @@ function WorkflowContent({ params }: { params: { id: string } }) {
       }));
     } catch (error) {
       console.error('Error during step submission:', error);
-      // Handle error (show error message to user)
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleStepRegenerate = async (feedback: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/step/${currentStep}/regenerate`, {
         method: 'POST',
@@ -79,12 +87,20 @@ function WorkflowContent({ params }: { params: { id: string } }) {
       }));
     } catch (error) {
       console.error('Error during regeneration:', error);
-      // Handle error (show error message to user)
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-md">
+          {error}
+        </div>
+      )}
+
       <StepNavigator
         steps={WORKFLOW_STEPS}
         currentStep={currentStep}
@@ -97,12 +113,18 @@ function WorkflowContent({ params }: { params: { id: string } }) {
         onRepeat={handleStepRegenerate}
       />
 
-      <StepForm
-        step={currentStep}
-        onSubmit={handleStepSubmit}
-        result={stepResults[currentStep]}
-        previousStepResults={stepResults}
-      />
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+      ) : (
+        <StepForm
+          step={currentStep}
+          onSubmit={handleStepSubmit}
+          result={stepResults[currentStep]}
+          previousStepResults={stepResults}
+        />
+      )}
     </div>
   );
 }
