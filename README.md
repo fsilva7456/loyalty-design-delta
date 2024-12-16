@@ -33,4 +33,8 @@ python main.py
 3. Link project: `railway link`
 4. Deploy: `railway up`
 
-API Documentation available at `/docs` endpoint.
+## Development Notes
+
+- API Documentation available at `/docs` endpoint
+- Swagger UI interface available at `/docs`
+- ReDoc interface available at `/redoc`
