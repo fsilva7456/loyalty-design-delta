@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function LoyaltyMechanics() {
   const params = useParams();
-  const workflowId = params.id as string;
+  const id = params.id as string;
   const { workflow, updateWorkflowStep } = useWorkflow();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +47,7 @@ export default function LoyaltyMechanics() {
     try {
       // Update workflow step before navigation
       await updateWorkflowStep('current_step', 'cost-estimation');
-      window.location.href = `/workflow/${workflowId}/cost-estimation`;
+      window.location.href = `/workflow/${id}/cost-estimation`;
     } catch (err) {
       setError('Failed to navigate to next step');
     }
@@ -74,7 +74,7 @@ export default function LoyaltyMechanics() {
         <LoyaltyMechanicsForm
           customerSegments={customerSegments}
           objectives={objectives}
-          workflowId={workflowId}
+          id={id}
           onSubmit={handleSubmit}
           isLoading={isLoading}
         />

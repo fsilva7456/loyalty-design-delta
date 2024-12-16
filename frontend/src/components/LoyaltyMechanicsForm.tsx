@@ -8,7 +8,7 @@ import { CustomerSegment, LoyaltyMechanicsFormData } from '@/types/loyalty';
 interface LoyaltyMechanicsFormProps {
   customerSegments: CustomerSegment[];
   objectives: string[];
-  workflowId: string;
+  id: string;
   onSubmit: (data: LoyaltyMechanicsFormData) => void;
   isLoading: boolean;
 }
@@ -24,7 +24,7 @@ const MECHANIC_OPTIONS = [
 const LoyaltyMechanicsForm: React.FC<LoyaltyMechanicsFormProps> = ({ 
   customerSegments, 
   objectives, 
-  workflowId, 
+  id, 
   onSubmit, 
   isLoading 
 }) => {
@@ -40,7 +40,7 @@ const LoyaltyMechanicsForm: React.FC<LoyaltyMechanicsFormProps> = ({
     }
     
     const requestData: LoyaltyMechanicsFormData = {
-      workflow_id: workflowId,
+      workflow_id: id,
       customer_segments: customerSegments,
       objectives: objectives,
       mechanics_preferences: {
