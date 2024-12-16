@@ -14,8 +14,17 @@ interface Props {
 }
 
 export default function LoyaltyObjectivesResult({ result }: Props) {
-  if (!result || !result.objectives) {
+  // Debug log
+  console.log('Loyalty Objectives Result:', result);
+
+  if (!result) {
+    console.log('No result provided');
     return <div>No results available</div>;
+  }
+
+  if (!Array.isArray(result.objectives)) {
+    console.log('Objectives is not an array:', result.objectives);
+    return <div>Invalid results format</div>;
   }
 
   return (
@@ -23,16 +32,17 @@ export default function LoyaltyObjectivesResult({ result }: Props) {
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Loyalty Program Objectives</h3>
         <div className="space-y-4">
-          {Array.isArray(result.objectives) && result.objectives.map((objective, index) => (
+          {result.objectives.map((obj: LoyaltyObjective, index: number) => (
             <div key={index} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
               <div className="px-4 py-5 sm:p-6">
                 <h4 className="text-lg font-medium text-indigo-600 mb-2">
-                  Objective {index + 1}: {objective.objective}
+                  Objective {index + 1}:
                 </h4>
-                <div className="mt-2">
+                <p className="text-gray-900">{obj.objective}</p>
+                <div className="mt-4">
                   <h5 className="text-sm font-medium text-gray-700 mb-1">Rationale:</h5>
                   <p className="text-gray-600 text-sm whitespace-pre-line">
-                    {objective.rationale}
+                    {obj.rationale}
                   </p>
                 </div>
               </div>
@@ -49,10 +59,6 @@ export default function LoyaltyObjectivesResult({ result }: Props) {
           </div>
         </div>
       )}
-
-      <div className="mt-4 text-sm text-gray-500">
-        <p>These objectives are based on the customer segmentation analysis and are designed to maximize customer loyalty and business value.</p>
-      </div>
     </div>
   );
 }
