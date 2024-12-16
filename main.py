@@ -23,22 +23,29 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Get frontend URL from environment variable, default to development URL
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://loyalty-design-delta-127w0yf63-fsilva7456s-projects.vercel.app')
-
-# Configure CORS with more specific settings
+# Configure CORS with more permissive settings for Vercel preview deployments
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        FRONTEND_URL,  # Production frontend
-        "http://localhost:3000",  # Local development frontend
-        "https://loyalty-design-delta-git-main-fsilva7456s-projects.vercel.app",  # Preview deployments
-        "https://loyalty-design-delta.vercel.app"  # Production deployment
+        # Local development
+        "http://localhost:3000",
+        "http://localhost:8000",
+        
+        # Production deployments
+        "https://loyalty-design-delta.vercel.app",
+        
+        # Preview deployments - using wildcards to match all preview URLs
+        "https://loyalty-design-delta-*.vercel.app",
+        "https://loyalty-design-delta-git-*.vercel.app",
+        
+        # Generic pattern for all vercel preview deployments
+        "https://*.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    allow_origin_regex="https://loyalty-design-delta.*\.vercel\.app"
 )
 
 # Include routers
