@@ -10,7 +10,7 @@ from routers import (
     performance_simulation,
     business_case
 )
-from openai import OpenAI
+from openai import AsyncOpenAI
 import uvicorn
 import uuid
 import os
@@ -101,7 +101,7 @@ async def test_openai():
                 detail="OpenAI API key not configured"
             )
             
-        client = OpenAI(api_key=api_key)
+        client = AsyncOpenAI(api_key=api_key)
         logger.info("Making test request to OpenAI")
         response = await client.chat.completions.create(
             model="gpt-4-turbo-preview",
