@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { executeStep } from '@/services/api';
 import { useWorkflow } from '@/contexts/WorkflowContext';
 import StepNavigator from '@/components/StepNavigator';
@@ -26,15 +26,28 @@ export default function StepPage() {
     'business_case'
   ];
 
+  useEffect(() => {
+    // Debug logs
+    console.log('Current step:', currentStep);
+    console.log('Workflow state:', state);
+    console.log('Params:', params);
+  }, [currentStep, state, params]);
+
   const handleStepSubmit = async (formData: any) => {
     setError('');
     setLoading(true);
 
     try {
-      const result = await executeStep(currentStep, {
+      // Always include workflow_id from params
+      const payload = {
         workflow_id: params.id,
         ...formData
-      });
+      };
+
+      console.log(`Submitting ${currentStep} with payload:`, payload);
+
+      const result = await executeStep(currentStep, payload);
+      console.log(`${currentStep} result:`, result);
       
       setStepResult(result);
       dispatch({
