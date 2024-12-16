@@ -1,16 +1,12 @@
-from openai import OpenAI
-from models.loyalty_mechanics import (
-    LoyaltyMechanicsRequest,
-    LoyaltyMechanicsResponse,
-    MechanicsRecommendation
-)
+from .base_service import BaseService
+from models.loyalty_mechanics import LoyaltyMechanicsRequest, LoyaltyMechanicsResponse, MechanicsRecommendation
+from models.regeneration import RegenerationRequest
 from fastapi import HTTPException
-import json
-import os
 
-class LoyaltyMechanicsService:
+class LoyaltyMechanicsService(BaseService):
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        super().__init__()
+        self.system_message = "You are an expert in loyalty program design and implementation."
 
     def _construct_prompt(self, request: LoyaltyMechanicsRequest) -> str:
         objectives_text = '\n'.join(
@@ -26,7 +22,7 @@ class LoyaltyMechanicsService:
             for seg in request.customer_segments
         )
 
-        return f"""Based on the following information for {request.company_name} in the {request.industry} industry:
+        self._original_prompt = f"""Based on the following information for {request.company_name} in the {request.industry} industry:
 
 Objectives:
 {objectives_text}
@@ -40,49 +36,51 @@ Provide loyalty program mechanics recommendations in JSON format with the follow
         {{
             "name": "Mechanic name",
             "description": "Detailed description",
-            "benefits": ["Benefit 1", "Benefit 2", ...],
+            "benefits": ["Benefit 1", "Benefit 2"],
             "implementation_complexity": "Low/Medium/High with explanation",
             "cost_estimate": "Cost range and factors",
             "expected_impact": "Expected impact on objectives"
         }}
     ],
     "implementation_roadmap": "Phased implementation plan",
-    "success_metrics": ["Metric 1", "Metric 2", ...]
+    "success_metrics": ["Metric 1", "Metric 2"]
 }}
 
 Provide 3-4 mechanics that:
 1. Directly support the stated objectives
 2. Are appropriate for the customer segments
 3. Can be realistically implemented
-4. Offer clear value to both business and customers
-"""
+4. Offer clear value to both business and customers"""
+        return self._original_prompt
 
     async def generate_mechanics(self, request: LoyaltyMechanicsRequest) -> LoyaltyMechanicsResponse:
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4-turbo-preview",
-                messages=[{
-                    "role": "system",
-                    "content": "You are an expert in loyalty program design and implementation."
-                },
-                {
-                    "role": "user",
-                    "content": self._construct_prompt(request)
-                }],
-                response_format={"type": "json_object"}
-            )
-            
-            result = json.loads(response.choices[0].message.content)
-            
-            return LoyaltyMechanicsResponse(
-                workflow_id=request.workflow_id,
-                recommended_mechanics=[
-                    MechanicsRecommendation(**mech)
-                    for mech in result['recommended_mechanics']
-                ],
-                implementation_roadmap=result['implementation_roadmap'],
-                success_metrics=result['success_metrics']
-            )
-            
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error generating loyalty mechanics: {str(e)}")
+        result = await self._generate_openai_response(
+            self._construct_prompt(request),
+            self.system_message
+        )
+        
+        return LoyaltyMechanicsResponse(
+            workflow_id=request.workflow_id,
+            recommended_mechanics=[MechanicsRecommendation(**mech) for mech in result['recommended_mechanics']],
+            implementation_roadmap=result['implementation_roadmap'],
+            success_metrics=result['success_metrics']
+        )
+
+    async def regenerate_mechanics(self, request: RegenerationRequest) -> LoyaltyMechanicsResponse:
+        regeneration_prompt = self._construct_regeneration_prompt(
+            previous_result=request.previous_result,
+            user_feedback=request.user_feedback,
+            original_prompt=self._original_prompt
+        )
+        
+        result = await self._generate_openai_response(
+            regeneration_prompt,
+            self.system_message
+        )
+        
+        return LoyaltyMechanicsResponse(
+            workflow_id=request.workflow_id,
+            recommended_mechanics=[MechanicsRecommendation(**mech) for mech in result['recommended_mechanics']],
+            implementation_roadmap=result['implementation_roadmap'],
+            success_metrics=result['success_metrics']
+        )
