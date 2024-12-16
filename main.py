@@ -12,6 +12,7 @@ from routers import (
 )
 import uvicorn
 import uuid
+import os
 
 # Load environment variables
 load_dotenv()
@@ -22,13 +23,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# Get frontend URL from environment variable, default to development URL
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://loyalty-design-delta-127w0yf63-fsilva7456s-projects.vercel.app')
+
+# Configure CORS with more specific settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        FRONTEND_URL,  # Production frontend
+        "http://localhost:3000",  # Local development frontend
+        "https://loyalty-design-delta-git-main-fsilva7456s-projects.vercel.app",  # Preview deployments
+        "https://loyalty-design-delta.vercel.app"  # Production deployment
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Include routers
