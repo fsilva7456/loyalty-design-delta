@@ -4,11 +4,14 @@ import { useState } from 'react';
 import CustomerAnalysisForm from './CustomerAnalysisForm';
 import CustomerAnalysisResult from './CustomerAnalysisResult';
 import CompetitorAnalysisResult from './CompetitorAnalysisResult';
+import LoyaltyObjectivesForm from './LoyaltyObjectivesForm';
+import LoyaltyObjectivesResult from './LoyaltyObjectivesResult';
 
 interface StepFormProps {
   step: string;
   onSubmit: (data: any) => void;
   result: any;
+  previousStepResults?: Record<string, any>;
 }
 
 interface FormData {
@@ -16,7 +19,7 @@ interface FormData {
   industry?: string;
 }
 
-export default function StepForm({ step, onSubmit, result }: StepFormProps) {
+export default function StepForm({ step, onSubmit, result, previousStepResults = {} }: StepFormProps) {
   const [formData, setFormData] = useState<FormData>({});
   const [error, setError] = useState<string>('');
 
@@ -82,6 +85,17 @@ export default function StepForm({ step, onSubmit, result }: StepFormProps) {
       case 'customer_analysis':
         return <CustomerAnalysisForm onSubmit={onSubmit} />;
       
+      case 'loyalty_objectives':
+        const customerAnalysisResult = previousStepResults?.customer_analysis;
+        return (
+          <LoyaltyObjectivesForm 
+            onSubmit={onSubmit}
+            customerSegments={customerAnalysisResult?.customer_segments}
+            company_name={customerAnalysisResult?.company_name}
+            industry={customerAnalysisResult?.industry}
+          />
+        );
+      
       default:
         return <div>Form not implemented for this step</div>;
     }
@@ -94,6 +108,9 @@ export default function StepForm({ step, onSubmit, result }: StepFormProps) {
       
       case 'customer_analysis':
         return <CustomerAnalysisResult result={result} />;
+      
+      case 'loyalty_objectives':
+        return <LoyaltyObjectivesResult result={result} />;
       
       default:
         return (
