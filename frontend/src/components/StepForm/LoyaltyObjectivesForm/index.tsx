@@ -19,13 +19,27 @@ export default function LoyaltyObjectivesForm({
   company_name = '',
   industry = ''
 }: LoyaltyObjectivesFormProps) {
+  console.log('Form Props:', { customerSegments, company_name, industry });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      company_name,
-      industry,
-      customer_segments: customerSegments
-    });
+    
+    // Format the data according to the backend's expected schema
+    const formData = {
+      workflow_id: new URLSearchParams(window.location.search).get('workflow_id') || '',
+      company_name: company_name,
+      industry: industry,
+      customer_segments: customerSegments.map(segment => ({
+        segment_name: segment.segment_name,
+        segment_size: segment.segment_size,
+        spend_potential: segment.spend_potential,
+        churn_risk: segment.churn_risk,
+        growth_opportunity: segment.growth_opportunity
+      }))
+    };
+
+    console.log('Submitting data:', formData);
+    onSubmit(formData);
   };
 
   return (
