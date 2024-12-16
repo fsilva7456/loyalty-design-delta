@@ -1,16 +1,16 @@
 from pydantic import BaseModel, Field
 from typing import List
 
+class LoyaltyObjective(BaseModel):
+    objective: str
+    rationale: str
+
 class CustomerSegmentInput(BaseModel):
     segment_name: str = Field(..., min_length=1)
     segment_size: int = Field(..., gt=0)
     spend_potential: float = Field(..., ge=0)
     churn_risk: float = Field(..., ge=0, le=1)
     growth_opportunity: str
-
-class LoyaltyObjective(BaseModel):
-    objective: str
-    rationale: str
 
 class LoyaltyObjectivesRequest(BaseModel):
     workflow_id: str
