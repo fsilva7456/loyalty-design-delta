@@ -18,13 +18,12 @@ import logging
 import sys
 from datetime import datetime
 
-# Configure logging
+# Configure logging - use only console logging for Railway
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(f'logs/app_{datetime.now().strftime("%Y%m%d")}.log')
+        logging.StreamHandler(sys.stdout)
     ]
 )
 
