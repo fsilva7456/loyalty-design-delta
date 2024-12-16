@@ -1,26 +1,20 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 
-class CustomerSegmentInput(BaseModel):
-    segment_name: str = Field(..., min_length=1)
-    segment_size: int = Field(..., gt=0)
-    average_spend: float = Field(..., gt=0)
-    visit_frequency: float = Field(..., gt=0)
-
-class CustomerSegmentOutput(BaseModel):
+class CustomerSegment(BaseModel):
     segment_name: str
-    segment_size: int
-    spend_potential: float
-    churn_risk: float
-    growth_opportunity: str
+    description: str
+    characteristics: List[str]
+    preferences: List[str]
+    size_percentage: float
+    annual_value: float
 
 class CustomerAnalysisRequest(BaseModel):
     workflow_id: str
     company_name: str = Field(..., min_length=1)
     industry: str = Field(..., min_length=1)
-    customer_segments: List[CustomerSegmentInput] = Field(..., min_items=1)
 
 class CustomerAnalysisResponse(BaseModel):
     workflow_id: str
-    customer_segments: List[CustomerSegmentOutput]
+    segments: List[CustomerSegment]
     insights: str
