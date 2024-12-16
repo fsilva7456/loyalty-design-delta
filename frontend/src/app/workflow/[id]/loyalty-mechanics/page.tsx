@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useRouter } from 'next/router';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { useApi } from '@/hooks/useApi';
 import LoyaltyMechanicsForm from '@/components/LoyaltyMechanicsForm';
@@ -11,9 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 
-export default function LoyaltyMechanicsPage() {
+export default function LoyaltyMechanics() {
   const params = useParams();
-  const router = useRouter();
   const workflowId = params.id as string;
   const { workflow, updateWorkflowStep } = useWorkflow();
   const [error, setError] = useState('');
@@ -45,8 +43,14 @@ export default function LoyaltyMechanicsPage() {
     }
   };
 
-  const handleNext = () => {
-    router.push(`/workflow/${workflowId}/cost-estimation`);
+  const handleNext = async () => {
+    try {
+      // Update workflow step before navigation
+      await updateWorkflowStep('current_step', 'cost-estimation');
+      window.location.href = `/workflow/${workflowId}/cost-estimation`;
+    } catch (err) {
+      setError('Failed to navigate to next step');
+    }
   };
 
   // Validate required data from previous steps
