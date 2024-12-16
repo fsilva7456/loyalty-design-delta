@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from routers import (
@@ -14,9 +14,25 @@ from openai import OpenAI
 import uvicorn
 import uuid
 import os
+import logging
+import sys
+from datetime import datetime
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(f'logs/app_{datetime.now().strftime("%Y%m%d")}.log')
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
+logger.info("Environment variables loaded")
 
 app = FastAPI(
     title="Loyalty Design Delta API",
@@ -49,6 +65,8 @@ app.add_middleware(
     allow_origin_regex="https://loyalty-design-delta.*\.vercel\.app"
 )
 
+logger.info("CORS middleware configured")
+
 # Include routers
 app.include_router(competitor_analysis.router)
 app.include_router(customer_analysis.router)
@@ -58,6 +76,16 @@ app.include_router(cost_estimation.router)
 app.include_router(performance_simulation.router)
 app.include_router(business_case.router)
 
+logger.info("Routers included")
+
+# Middleware for logging requests
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming {request.method} request to {request.url.path}")
+    response = await call_next(request)
+    logger.info(f"Completed {request.method} request to {request.url.path} with status {response.status_code}")
+    return response
+
 @app.get("/healthcheck")
 async def healthcheck():
     return {"status": "healthy"}
@@ -65,14 +93,17 @@ async def healthcheck():
 @app.get("/test-openai")
 async def test_openai():
     try:
+        logger.info("Testing OpenAI connection")
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
+            logger.error("OpenAI API key not configured")
             raise HTTPException(
                 status_code=500,
                 detail="OpenAI API key not configured"
             )
             
         client = OpenAI(api_key=api_key)
+        logger.info("Making test request to OpenAI")
         response = await client.chat.completions.create(
             model="gpt-4-turbo-preview",
             messages=[{
@@ -80,8 +111,10 @@ async def test_openai():
                 "content": "Say hello"
             }]
         )
+        logger.info("Successfully received OpenAI response")
         return {"status": "success", "message": response.choices[0].message.content}
     except Exception as e:
+        logger.error(f"OpenAI test failed: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"OpenAI test failed: {str(e)}"
@@ -90,7 +123,19 @@ async def test_openai():
 @app.post("/start_workflow")
 async def start_workflow():
     workflow_id = str(uuid.uuid4())
+    logger.info(f"Created new workflow: {workflow_id}")
     return {"workflow_id": workflow_id}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    logger.info("Starting application")
+    try:
+        uvicorn.run(
+            "main:app", 
+            host="0.0.0.0", 
+            port=8000, 
+            reload=True,
+            log_level="info"
+        )
+    except Exception as e:
+        logger.error(f"Failed to start application: {str(e)}")
+        raise
