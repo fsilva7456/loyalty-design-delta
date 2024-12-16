@@ -6,6 +6,7 @@ import CustomerAnalysisResult from './CustomerAnalysisResult';
 import CompetitorAnalysisResult from './CompetitorAnalysisResult';
 import LoyaltyObjectivesForm from './LoyaltyObjectivesForm';
 import LoyaltyObjectivesResult from './LoyaltyObjectivesResult';
+import { useParams } from 'next/navigation';
 
 interface StepFormProps {
   step: string;
@@ -22,11 +23,7 @@ interface FormData {
 export default function StepForm({ step, onSubmit, result, previousStepResults = {} }: StepFormProps) {
   const [formData, setFormData] = useState<FormData>({});
   const [error, setError] = useState<string>('');
-
-  // Debug log
-  console.log('Step:', step);
-  console.log('Result:', result);
-  console.log('Previous Results:', previousStepResults);
+  const params = useParams();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,12 +89,27 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
       
       case 'loyalty_objectives':
         const customerAnalysisResult = previousStepResults?.customer_analysis;
+        const competitorAnalysisResult = previousStepResults?.competitor_analysis;
+        
+        // Get company name and industry from either step's results
+        const companyName = customerAnalysisResult?.company_name || competitorAnalysisResult?.company_name || '';
+        const industry = customerAnalysisResult?.industry || competitorAnalysisResult?.industry || '';
+        
+        console.log('Previous Results:', previousStepResults);
+        console.log('Company Name:', companyName);
+        console.log('Industry:', industry);
+        
         return (
           <LoyaltyObjectivesForm 
-            onSubmit={onSubmit}
+            onSubmit={(data) => onSubmit({
+              ...data,
+              workflow_id: params.id,
+              company_name: companyName,
+              industry: industry
+            })}
             customerSegments={customerAnalysisResult?.customer_segments}
-            company_name={customerAnalysisResult?.company_name}
-            industry={customerAnalysisResult?.industry}
+            company_name={companyName}
+            industry={industry}
           />
         );
       
@@ -115,7 +127,6 @@ export default function StepForm({ step, onSubmit, result, previousStepResults =
         return <CustomerAnalysisResult result={result} />;
       
       case 'loyalty_objectives':
-        console.log('Rendering loyalty objectives result:', result);
         return <LoyaltyObjectivesResult result={result} />;
       
       default:
