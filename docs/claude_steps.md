@@ -63,6 +63,21 @@ Updated `main.py`
 - Added loyalty_mechanics router import
 - Included router in FastAPI app
 
+### Step 7: Bug Fixes and Improvements ✅
+
+#### Data Persistence Fix (2024-03-25)
+Fixed issue with company name and industry data not persisting correctly:
+- Added getCompanyAndIndustry helper function to centralize data retrieval
+- Updated logic to check all previous steps for company/industry data
+- Improved error handling and data validation
+- Fixed warning message appearing incorrectly
+
+Changes made in:
+- frontend/src/components/StepForm/index.tsx
+  - Added getCompanyAndIndustry helper function
+  - Updated loyalty_mechanics and loyalty_objectives cases
+  - Improved data flow between steps
+
 ## Testing Checklist
 1. Form Submission
    - [ ] Verify data from previous steps is loaded
