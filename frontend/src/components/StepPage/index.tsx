@@ -74,7 +74,7 @@ export default function StepPage() {
     }
   };
 
-  const handleRepeat = async (userFeedback: string): Promise<void> => {
+  const handleRepeat = async (feedbackText: string): Promise<void> => {
     setError('');
     setLoading(true);
 
@@ -86,17 +86,16 @@ export default function StepPage() {
         throw new Error('No previous result available for regeneration');
       }
 
-      // Use the feedback to regenerate the step
-      const payload = {
-        workflow_id: params.id,
-        // Renamed from user_feedback to feedback to match backend expectation
-        feedback: userFeedback,
+      // Construct the regeneration request
+      const regenerationPayload = {
+        workflow_id: params.id as string,
+        feedback: feedbackText,  // Ensure this matches the backend's expectation
         previous_result: currentStepResult
       };
 
-      console.log(`Regenerating ${currentStep} with payload:`, JSON.stringify(payload, null, 2));
+      console.log(`Regenerating ${currentStep} with payload:`, regenerationPayload);
 
-      const result = await executeStep(`${currentStep}/regenerate`, payload);
+      const result = await executeStep(`${currentStep}/regenerate`, regenerationPayload);
       console.log(`${currentStep} regeneration result:`, result);
       
       setStepResult(result);
@@ -106,7 +105,7 @@ export default function StepPage() {
       });
     } catch (error: any) {
       console.error(`Error regenerating step ${currentStep}:`, error);
-      throw new Error(error.message || 'An error occurred while regenerating the step');
+      throw error;
     } finally {
       setLoading(false);
     }
