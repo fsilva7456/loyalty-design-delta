@@ -1,9 +1,19 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import { toast } from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_BASE_URL) {
   console.error('NEXT_PUBLIC_API_URL is not configured');
+}
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+interface APIError {
+  detail: string;
+  code?: string;
+  correlation_id?: string;
 }
 
 const api = axios.create({
@@ -14,7 +24,28 @@ const api = axios.create({
   timeout: 30000, // 30 second timeout
 });
 
-// Add request interceptor for debugging
+// Retry logic
+const retryRequest = async (fn: () => Promise<any>, retries: number = MAX_RETRIES): Promise<any> => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries > 0 && isRetryableError(error)) {
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      return retryRequest(fn, retries - 1);
+    }
+    throw error;
+  }
+};
+
+const isRetryableError = (error: any): boolean => {
+  return (
+    !error.response || // Network errors
+    error.response.status >= 500 || // Server errors
+    error.response.status === 429 // Rate limiting
+  );
+};
+
+// Request interceptor
 api.interceptors.request.use(
   config => {
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
@@ -29,32 +60,45 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for debugging
+// Response interceptor
 api.interceptors.response.use(
   response => {
     console.log('API Response:', {
       status: response.status,
-      data: response.data
+      data: response.data,
+      correlation_id: response.headers['x-correlation-id']
     });
     return response;
   },
   error => {
+    const correlation_id = error.response?.headers?.['x-correlation-id'];
     console.error('API Response Error:', {
       message: error.message,
       response: error.response?.data,
-      status: error.response?.status
+      status: error.response?.status,
+      correlation_id
     });
+
+    // Handle CORS errors specifically
+    if (error.message === 'Network Error') {
+      toast.error('Unable to connect to the server. Please check your connection.');
+      return Promise.reject(new Error('CORS or network error occurred'));
+    }
+
     return Promise.reject(error);
   }
 );
 
 export const startWorkflow = async () => {
   try {
-    const response = await api.post('/start_workflow');
-    return response.data;
+    return await retryRequest(async () => {
+      const response = await api.post('/start_workflow');
+      return response.data;
+    });
   } catch (error) {
     console.error('Error starting workflow:', error);
-    throw new Error('Failed to start workflow');
+    handleApiError(error);
+    throw error;
   }
 };
 
@@ -73,48 +117,57 @@ export const executeStep = async (stepName: string, payload: any) => {
       throw new Error('API URL is not configured. Please check your environment variables.');
     }
 
-    // Handle regeneration requests specifically
-    if (stepName.endsWith('/regenerate')) {
-      const regenerationPayload: RegenerationPayload = {
-        workflow_id: payload.workflow_id,
-        user_feedback: payload.feedback || payload.user_feedback,  // Handle both for backwards compatibility
-        previous_result: payload.previous_result
-      };
-      console.log('Regeneration payload:', regenerationPayload);
-      const response = await api.post(`/step/${stepName}`, regenerationPayload);
+    return await retryRequest(async () => {
+      // Handle regeneration requests specifically
+      if (stepName.endsWith('/regenerate')) {
+        const regenerationPayload: RegenerationPayload = {
+          workflow_id: payload.workflow_id,
+          user_feedback: payload.feedback || payload.user_feedback,
+          previous_result: payload.previous_result
+        };
+        console.log('Regeneration payload:', regenerationPayload);
+        const response = await api.post(`/step/${stepName}`, regenerationPayload);
+        return response.data;
+      }
+
+      // Handle normal requests
+      const response = await api.post(`/step/${stepName}`, payload);
       return response.data;
-    }
-
-    // Handle normal requests
-    const response = await api.post(`/step/${stepName}`, payload);
-    return response.data;
-  } catch (error: any) {
-    console.error(`Error executing step ${stepName}:`, {
-      error,
-      response: error.response?.data,
-      config: error.config
     });
+  } catch (error) {
+    console.error(`Error executing step ${stepName}:`, error);
+    handleApiError(error);
+    throw error;
+  }
+};
 
-    // Network or configuration errors
-    if (error.code === 'ECONNABORTED') {
-      throw new Error('Request timed out. Please try again.');
-    }
-    if (!error.response) {
-      throw new Error('Network error. Please check your connection and try again.');
-    }
-
-    // API errors
-    const errorMessage = error.response?.data?.detail || error.message || 'An unexpected error occurred';
-    throw new Error(errorMessage);
+const handleApiError = (error: any) => {
+  if (error.response?.data?.error) {
+    const apiError = error.response.data.error as APIError;
+    const message = apiError.detail || 'An unexpected error occurred';
+    const correlationId = apiError.correlation_id;
+    
+    toast.error(
+      correlationId 
+        ? `${message} (Reference: ${correlationId})` 
+        : message
+    );
+  } else if (error.message) {
+    toast.error(error.message);
+  } else {
+    toast.error('An unexpected error occurred');
   }
 };
 
 export const getBusinessCase = async (payload: any) => {
   try {
-    const response = await api.post('/step/business_case', payload);
-    return response.data;
-  } catch (error: any) {
-    console.error('Error getting business case:', error.response?.data || error);
-    throw new Error(error.response?.data?.detail || 'Failed to get business case');
+    return await retryRequest(async () => {
+      const response = await api.post('/step/business_case', payload);
+      return response.data;
+    });
+  } catch (error) {
+    console.error('Error getting business case:', error);
+    handleApiError(error);
+    throw error;
   }
 };
