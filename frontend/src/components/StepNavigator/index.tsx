@@ -5,7 +5,7 @@ interface StepNavigatorProps {
   steps: string[];
   currentStep: string;
   onNext: () => void;
-  onRepeat: (feedback: string) => void;
+  onRepeat: (feedback: string) => Promise<void>;
 }
 
 export default function StepNavigator({
@@ -17,9 +17,15 @@ export default function StepNavigator({
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const currentIndex = steps.indexOf(currentStep);
 
-  const handleRepeat = (feedback: string) => {
-    onRepeat(feedback);
-    setShowFeedbackModal(false);
+  const handleRepeat = async (feedback: string) => {
+    try {
+      await onRepeat(feedback);
+      setShowFeedbackModal(false);
+    } catch (error) {
+      console.error('Error during step repeat:', error);
+      // Let the RegenerationModal handle the error display
+      throw error;
+    }
   };
 
   return (
