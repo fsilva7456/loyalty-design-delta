@@ -83,10 +83,10 @@ export default function StepPage() {
       const payload = {
         workflow_id: params.id,
         feedback,
-        previous_result: stepResult
+        previous_result: state.stepResults[currentStep] || stepResult
       };
 
-      console.log(`Regenerating ${currentStep} with feedback:`, payload);
+      console.log(`Regenerating ${currentStep} with payload:`, payload);
 
       const result = await executeStep(`${currentStep}/regenerate`, payload);
       console.log(`${currentStep} regeneration result:`, result);
