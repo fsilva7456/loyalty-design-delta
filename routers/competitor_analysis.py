@@ -5,6 +5,7 @@ from models.competitor_analysis import (
     CompetitorAnalysisRegenerationRequest
 )
 from services.competitor_analysis import CompetitorAnalysisService
+from pprint import pformat
 import logging
 
 router = APIRouter()
@@ -54,7 +55,10 @@ async def regenerate_competitor_analysis(
     try:
         # Log incoming regeneration request
         body = await request.json()
-        logger.info(f"Received competitor analysis regeneration request: {body}")
+        logger.info(f"Received competitor analysis regeneration request: \n{pformat(body)}")
+        
+        # Log validation info
+        logger.info(f"Validating request against model: \n{pformat(CompetitorAnalysisRegenerationRequest.model_json_schema())}")
         
         # Call service with regeneration data
         result = await service.regenerate_analysis(
