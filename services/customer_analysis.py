@@ -8,16 +8,10 @@ logger = logging.getLogger(__name__)
 
 class CustomerAnalysisService(BaseService):
     def __init__(self):
-        try:
-            super().__init__()
-            self.system_message = "You are an expert in customer segmentation and behavior analysis."
-            logger.info("CustomerAnalysisService initialized successfully")
-        except Exception as e:
-            logger.error(f"Error initializing CustomerAnalysisService: {str(e)}")
-            raise
+        super().__init__()
+        self.system_message = "You are an expert in customer segmentation and behavior analysis."
 
     def _construct_prompt(self, request: CustomerAnalysisRequest) -> str:
-        logger.info(f"Constructing prompt for company {request.company_name} in {request.industry} industry")
         self._original_prompt = f"""Based on the provided customer data for {request.company_name} in the {request.industry} industry,
 create meaningful customer segments and insights.
 
@@ -38,61 +32,44 @@ Provide analysis in JSON format with the following structure:
 
 Ensure to:
 1. Create meaningful segments
-2. Analyze behavior patterns
-3. Identify value potential
-4. Provide actionable insights"""
+2. Include detailed segment descriptions
+3. List key characteristics
+4. Identify preferences
+5. Provide actionable insights"""
         return self._original_prompt
 
     async def analyze_customers(self, request: CustomerAnalysisRequest) -> CustomerAnalysisResponse:
         try:
-            logger.info(f"Starting customer analysis for {request.company_name}")
+            logger.info(f"Analyzing customers for {request.company_name} in {request.industry}")
             
-            # Generate prompt
-            prompt = self._construct_prompt(request)
-            logger.info("Prompt constructed successfully")
-            
-            # Get OpenAI response
-            logger.info("Calling OpenAI API")
             result = await self._generate_openai_response(
-                prompt,
+                self._construct_prompt(request),
                 self.system_message
             )
-            logger.info("Received response from OpenAI")
             
-            # Validate response structure
-            if not isinstance(result, dict):
-                logger.error(f"Invalid response format from OpenAI: {result}")
-                raise ValueError("Invalid response format from OpenAI")
-                
-            if 'segments' not in result or not isinstance(result['segments'], list):
-                logger.error(f"Missing or invalid segments in response: {result}")
-                raise ValueError("Missing or invalid segments in response")
-                
-            if 'insights' not in result or not isinstance(result['insights'], str):
-                logger.error(f"Missing or invalid insights in response: {result}")
-                raise ValueError("Missing or invalid insights in response")
+            logger.info("Received OpenAI response, parsing segments")
+            logger.debug(f"Raw OpenAI response: {result}")
             
-            # Parse response
-            logger.info("Parsing OpenAI response")
+            if not result.get('segments') or not isinstance(result['segments'], list):
+                logger.error(f"Invalid response format: {result}")
+                raise ValueError("Invalid response format from OpenAI - missing segments array")
+                
+            segments = [CustomerSegment(**seg) for seg in result['segments']]
+            logger.info(f"Successfully parsed {len(segments)} segments")
+            
             response = CustomerAnalysisResponse(
                 workflow_id=request.workflow_id,
-                segments=[CustomerSegment(**seg) for seg in result['segments']],
-                insights=result['insights']
+                segments=segments,
+                insights=result.get('insights', '')
             )
             
-            logger.info(f"Successfully completed customer analysis for {request.company_name}")
-            logger.info(f"Generated {len(response.segments)} segments")
+            logger.info("Successfully completed customer analysis")
             return response
             
         except Exception as e:
             logger.error(f"Error in analyze_customers: {str(e)}")
             if isinstance(e, HTTPException):
                 raise e
-            if isinstance(e, ValueError):
-                raise HTTPException(
-                    status_code=422,
-                    detail=str(e)
-                )
             raise HTTPException(
                 status_code=500,
                 detail=f"Error in customer analysis: {str(e)}"
@@ -100,30 +77,33 @@ Ensure to:
 
     async def regenerate_analysis(self, request: RegenerationRequest) -> CustomerAnalysisResponse:
         try:
-            logger.info(f"Starting customer analysis regeneration for workflow {request.workflow_id}")
+            logger.info(f"Regenerating analysis for workflow {request.workflow_id}")
             
-            # Generate regeneration prompt
             regeneration_prompt = self._construct_regeneration_prompt(
                 previous_result=request.previous_result,
                 user_feedback=request.user_feedback,
                 original_prompt=self._original_prompt
             )
-            logger.info("Regeneration prompt constructed successfully")
             
-            # Get OpenAI response
-            logger.info("Calling OpenAI API for regeneration")
             result = await self._generate_openai_response(
                 regeneration_prompt,
                 self.system_message
             )
-            logger.info("Received regeneration response from OpenAI")
             
-            # Parse response
-            logger.info("Parsing regenerated OpenAI response")
+            logger.info("Received regenerated OpenAI response, parsing segments")
+            logger.debug(f"Raw regenerated response: {result}")
+            
+            if not result.get('segments') or not isinstance(result['segments'], list):
+                logger.error(f"Invalid regenerated response format: {result}")
+                raise ValueError("Invalid response format from OpenAI - missing segments array")
+            
+            segments = [CustomerSegment(**seg) for seg in result['segments']]
+            logger.info(f"Successfully parsed {len(segments)} regenerated segments")
+            
             response = CustomerAnalysisResponse(
                 workflow_id=request.workflow_id,
-                segments=[CustomerSegment(**seg) for seg in result['segments']],
-                insights=result['insights']
+                segments=segments,
+                insights=result.get('insights', '')
             )
             
             logger.info("Successfully completed customer analysis regeneration")
