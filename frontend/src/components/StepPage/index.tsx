@@ -9,7 +9,7 @@ import StepForm from '@/components/StepForm';
 
 interface RegenerationPayload {
   workflow_id: string;
-  feedback: string;
+  user_feedback: string;
   previous_result: any;
 }
 
@@ -33,6 +33,7 @@ export default function StepPage() {
   ];
 
   useEffect(() => {
+    // Debug logs
     console.log('Current step:', currentStep);
     console.log('Workflow state:', state);
     console.log('Params:', params);
@@ -43,6 +44,7 @@ export default function StepPage() {
     setLoading(true);
 
     try {
+      // Always include workflow_id from params
       const payload = {
         workflow_id: params.id,
         ...formData
@@ -91,7 +93,7 @@ export default function StepPage() {
 
       const payload: RegenerationPayload = {
         workflow_id: params.id as string,
-        feedback,  // Using the parameter directly without renaming
+        user_feedback: feedback,  // Using user_feedback instead of feedback
         previous_result: currentStepResult
       };
 
