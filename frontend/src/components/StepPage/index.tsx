@@ -74,9 +74,34 @@ export default function StepPage() {
     }
   };
 
-  const handleRepeat = () => {
-    setStepResult(null);
+  const handleRepeat = async (feedback: string): Promise<void> => {
     setError('');
+    setLoading(true);
+
+    try {
+      // Use the feedback to regenerate the step
+      const payload = {
+        workflow_id: params.id,
+        feedback,
+        previous_result: stepResult
+      };
+
+      console.log(`Regenerating ${currentStep} with feedback:`, payload);
+
+      const result = await executeStep(`${currentStep}/regenerate`, payload);
+      console.log(`${currentStep} regeneration result:`, result);
+      
+      setStepResult(result);
+      dispatch({
+        type: 'SET_STEP_RESULT',
+        payload: { step: currentStep, result }
+      });
+    } catch (error: any) {
+      console.error(`Error regenerating step ${currentStep}:`, error);
+      throw new Error(error.message || 'An error occurred while regenerating the step');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
