@@ -7,6 +7,12 @@ import { useWorkflow } from '@/contexts/WorkflowContext';
 import StepNavigator from '@/components/StepNavigator';
 import StepForm from '@/components/StepForm';
 
+interface RegenerationPayload {
+  workflow_id: string;
+  feedback: string;
+  previous_result: any;
+}
+
 export default function StepPage() {
   const router = useRouter();
   const params = useParams();
@@ -27,7 +33,6 @@ export default function StepPage() {
   ];
 
   useEffect(() => {
-    // Debug logs
     console.log('Current step:', currentStep);
     console.log('Workflow state:', state);
     console.log('Params:', params);
@@ -38,7 +43,6 @@ export default function StepPage() {
     setLoading(true);
 
     try {
-      // Always include workflow_id from params
       const payload = {
         workflow_id: params.id,
         ...formData
@@ -74,28 +78,26 @@ export default function StepPage() {
     }
   };
 
-  const handleRepeat = async (feedbackText: string): Promise<void> => {
+  const handleRepeat = async (feedback: string): Promise<void> => {
     setError('');
     setLoading(true);
 
     try {
-      // Get the current step result
       const currentStepResult = state.stepResults[currentStep] || stepResult;
       
       if (!currentStepResult) {
         throw new Error('No previous result available for regeneration');
       }
 
-      // Construct the regeneration request
-      const regenerationPayload = {
+      const payload: RegenerationPayload = {
         workflow_id: params.id as string,
-        feedback: feedbackText,  // Ensure this matches the backend's expectation
+        feedback,  // Using the parameter directly without renaming
         previous_result: currentStepResult
       };
 
-      console.log(`Regenerating ${currentStep} with payload:`, regenerationPayload);
+      console.log(`Regenerating ${currentStep} with payload:`, payload);
 
-      const result = await executeStep(`${currentStep}/regenerate`, regenerationPayload);
+      const result = await executeStep(`${currentStep}/regenerate`, payload);
       console.log(`${currentStep} regeneration result:`, result);
       
       setStepResult(result);
