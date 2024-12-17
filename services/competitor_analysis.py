@@ -39,6 +39,35 @@ Ensure to:
 4. Provide actionable insights"""
         return prompt
 
+    def _construct_regeneration_prompt(self, previous_result: dict, feedback: str) -> str:
+        logger.info("Constructing regeneration prompt with feedback")
+        prompt = f"""Based on the previous competitor analysis and feedback, provide an updated analysis.
+
+Previous analysis:
+{previous_result}
+
+Feedback:
+{feedback}
+
+Provide an updated market analysis in JSON format with the following structure:
+{{
+    "competitors": [
+        {{
+            "name": "Competitor name",
+            "strengths": ["Strength 1", "Strength 2"],
+            "weaknesses": ["Weakness 1", "Weakness 2"],
+            "loyalty_programs": ["Program 1", "Program 2"]
+        }}
+    ],
+    "market_insights": "Overall market analysis"
+}}
+
+Ensure to:
+1. Address the feedback provided
+2. Maintain accuracy of previous insights where appropriate
+3. Provide new or refined insights based on the feedback"""
+        return prompt
+
     async def analyze_competitors(self, request: CompetitorAnalysisRequest) -> CompetitorAnalysisResponse:
         try:
             logger.info("Starting competitor analysis process")
@@ -73,4 +102,40 @@ Ensure to:
             raise HTTPException(
                 status_code=500,
                 detail=f"Error in competitor analysis: {str(e)}"
+            )
+
+    async def regenerate_analysis(self, workflow_id: str, feedback: str, previous_result: dict) -> CompetitorAnalysisResponse:
+        try:
+            logger.info(f"Starting competitor analysis regeneration for workflow {workflow_id}")
+            
+            # Generate regeneration prompt
+            prompt = self._construct_regeneration_prompt(previous_result, feedback)
+            logger.info("Regeneration prompt constructed successfully")
+            
+            # Get OpenAI response
+            logger.info("Calling OpenAI API for regeneration")
+            result = await self._generate_openai_response(
+                prompt,
+                self.system_message
+            )
+            logger.info("Received regeneration response from OpenAI")
+            
+            # Parse response
+            logger.info("Parsing regenerated OpenAI response")
+            response = CompetitorAnalysisResponse(
+                workflow_id=workflow_id,
+                competitors=[Competitor(**comp) for comp in result['competitors']],
+                market_insights=result['market_insights']
+            )
+            
+            logger.info("Successfully completed competitor analysis regeneration")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error in regenerate_analysis: {str(e)}")
+            if isinstance(e, HTTPException):
+                raise e
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error in competitor analysis regeneration: {str(e)}"
             )
