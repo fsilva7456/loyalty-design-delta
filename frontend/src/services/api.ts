@@ -19,9 +19,29 @@ export const startWorkflow = async () => {
   }
 };
 
+interface RegenerationPayload {
+  workflow_id: string;
+  feedback: string;
+  previous_result: any;
+}
+
 export const executeStep = async (stepName: string, payload: any) => {
   try {
     console.log(`Executing step ${stepName} with payload:`, payload);
+    
+    // Handle regeneration requests specifically
+    if (stepName.endsWith('/regenerate')) {
+      const regenerationPayload: RegenerationPayload = {
+        workflow_id: payload.workflow_id,
+        feedback: payload.user_feedback || payload.feedback, // Convert user_feedback to feedback
+        previous_result: payload.previous_result
+      };
+      console.log('Transformed regeneration payload:', regenerationPayload);
+      const response = await api.post(`/step/${stepName}`, regenerationPayload);
+      return response.data;
+    }
+
+    // Handle normal requests
     const response = await api.post(`/step/${stepName}`, payload);
     return response.data;
   } catch (error: any) {
