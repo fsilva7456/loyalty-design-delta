@@ -1,16 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from models.competitor_analysis import CompetitorAnalysisRequest, CompetitorAnalysisResponse
+from models.competitor_analysis import (
+    CompetitorAnalysisRequest,
+    CompetitorAnalysisResponse,
+    CompetitorAnalysisRegenerationRequest
+)
 from services.competitor_analysis import CompetitorAnalysisService
-from pydantic import BaseModel
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-class RegenerationRequest(BaseModel):
-    workflow_id: str
-    feedback: str
-    previous_result: dict
 
 def get_competitor_analysis_service():
     try:
@@ -50,7 +48,7 @@ async def analyze_competitors(
 @router.post("/step/competitor_analysis/regenerate", response_model=CompetitorAnalysisResponse)
 async def regenerate_competitor_analysis(
     request: Request,
-    data: RegenerationRequest,
+    data: CompetitorAnalysisRegenerationRequest,
     service: CompetitorAnalysisService = Depends(get_competitor_analysis_service)
 ):
     try:
