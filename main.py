@@ -51,6 +51,7 @@ app.add_middleware(
         "https://loyalty-design-delta.vercel.app",
         "https://loyalty-design-delta-git-main.vercel.app",
         "https://loyalty-design-delta-fsilva7456.vercel.app",
+        "https://web-production-9eb2.up.railway.app",
         
         # Allow all Vercel preview deployments
         "https://*.vercel.app"
@@ -79,6 +80,7 @@ logger.info("Routers included")
 async def log_requests(request: Request, call_next):
     logger.info(f"Incoming {request.method} request to {request.url.path}")
     logger.info(f"Request headers: {request.headers}")
+    logger.info(f"Request origin: {request.headers.get('origin')}")
     response = await call_next(request)
     logger.info(f"Completed {request.method} request to {request.url.path} with status {response.status_code}")
     return response
