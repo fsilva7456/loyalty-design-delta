@@ -17,8 +17,12 @@ class BaseService:
                     detail="OpenAI API key not configured"
                 )
                 
-            # Initialize with just the API key
-            self.client = AsyncOpenAI(api_key=api_key)
+            # Initialize OpenAI client with only the required parameters
+            self.client = AsyncOpenAI(
+                api_key=api_key,
+                max_retries=3,  # Add basic retry logic
+                timeout=30.0    # Add reasonable timeout
+            )
             self._original_prompt = None
             logger.info("OpenAI client initialized successfully")
             
