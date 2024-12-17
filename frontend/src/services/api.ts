@@ -21,7 +21,7 @@ export const startWorkflow = async () => {
 
 interface RegenerationPayload {
   workflow_id: string;
-  feedback: string;
+  user_feedback: string;
   previous_result: any;
 }
 
@@ -33,7 +33,7 @@ export const executeStep = async (stepName: string, payload: any) => {
     if (stepName.endsWith('/regenerate')) {
       const regenerationPayload: RegenerationPayload = {
         workflow_id: payload.workflow_id,
-        feedback: payload.feedback,  // Always use feedback as the field name
+        user_feedback: payload.feedback || payload.user_feedback,  // Handle both for backwards compatibility
         previous_result: payload.previous_result
       };
       console.log('Regeneration payload:', regenerationPayload);
