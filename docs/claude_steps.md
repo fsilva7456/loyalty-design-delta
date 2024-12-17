@@ -78,6 +78,24 @@ Changes made in:
   - Updated loyalty_mechanics and loyalty_objectives cases
   - Improved data flow between steps
 
+#### Competitor Analysis Parameter Fix (2024-12-17)
+Fixed parameter mismatch in competitor analysis regeneration:
+- Issue: CompetitorAnalysisService.regenerate_analysis() was receiving unexpected keyword argument 'user_feedback'
+- Root cause: Parameter name mismatch between router and service method
+
+Changes made in:
+- services/competitor_analysis.py
+  - Changed feedback parameter to user_feedback in regenerate_analysis method signature
+  - Updated _construct_regeneration_prompt to use user_feedback parameter
+  - Ensured consistent parameter naming across the codebase
+  - Maintained existing functionality while fixing the naming issue
+
+Impact:
+- Fixed regeneration functionality in competitor analysis
+- Improved code consistency
+- No changes required in frontend code
+- Maintains backward compatibility with existing data
+
 ## Testing Checklist
 1. Form Submission
    - [ ] Verify data from previous steps is loaded
