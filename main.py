@@ -18,7 +18,6 @@ from datetime import datetime
 
 from config import settings
 from utils.logging import setup_logging, log_request_details
-from middleware.error_handling import error_handler
 
 # Setup logging
 setup_logging(settings.LOG_LEVEL)
@@ -30,19 +29,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add error handling middleware
-app.middleware("http")(error_handler)
-
 # Configure CORS with environment-based settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.origins_list,
+    allow_origin_regex=None,  # Disable regex for simplicity
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600
 )
+
+logger.info(f"CORS configured with allowed origins: {settings.origins_list}")
 
 # Include routers
 app.include_router(competitor_analysis.router)
@@ -59,7 +58,17 @@ async def add_correlation_id(request: Request, call_next):
     logger.info(f"Processing request", extra={"correlation_id": correlation_id})
     
     try:
-        log_request_details(request, logger)
+        # Log request details
+        logger.info(
+            f"Incoming {request.method} request to {request.url.path}",
+            extra={
+                "correlation_id": correlation_id,
+                "headers": dict(request.headers.items()),
+                "origin": request.headers.get("origin"),
+                "host": request.headers.get("host")
+            }
+        )
+        
         response = await call_next(request)
         
         # Add correlation ID to response headers
@@ -85,12 +94,30 @@ async def add_correlation_id(request: Request, call_next):
 @app.middleware("http")
 async def handle_options(request: Request, call_next):
     if request.method == "OPTIONS":
-        response = Response()
-        response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin", "*")
-        response.headers["Access-Control-Allow-Methods"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Max-Age"] = "3600"
-        return response
+        origin = request.headers.get("Origin", "*")
+        
+        # Log CORS preflight request
+        logger.info(
+            "Handling CORS preflight request",
+            extra={
+                "origin": origin,
+                "method": request.method,
+                "allowed_origins": settings.origins_list
+            }
+        )
+        
+        # If we're allowing all origins or the origin is in our allowed list
+        if "*" in settings.origins_list or origin in settings.origins_list:
+            response = Response()
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Max-Age"] = "3600"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            return response
+            
+        logger.warning(f"Rejected CORS preflight from origin: {origin}")
+        
     return await call_next(request)
 
 @app.get("/healthcheck")
@@ -99,7 +126,10 @@ async def healthcheck():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "environment": settings.ENVIRONMENT,
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "cors": {
+            "allowed_origins": settings.origins_list
+        }
     }
 
 @app.get("/debug/cors")
@@ -108,7 +138,8 @@ async def debug_cors(request: Request):
         "allowed_origins": settings.origins_list,
         "request_origin": request.headers.get("Origin"),
         "request_method": request.method,
-        "environment": settings.ENVIRONMENT
+        "environment": settings.ENVIRONMENT,
+        "headers": dict(request.headers.items())
     }
 
 @app.post("/start_workflow")
