@@ -9,5 +9,5 @@ email-validator==2.1.0.post1
 requests==2.31.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-# Added for OpenAI client
-httpx>=0.26.0
+# Updated OpenAI dependencies
+httpx==0.25.2
