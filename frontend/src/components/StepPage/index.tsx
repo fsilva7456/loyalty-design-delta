@@ -74,7 +74,7 @@ export default function StepPage() {
     }
   };
 
-  const handleRepeat = async (feedback: string): Promise<void> => {
+  const handleRepeat = async (userFeedback: string): Promise<void> => {
     setError('');
     setLoading(true);
 
@@ -89,7 +89,8 @@ export default function StepPage() {
       // Use the feedback to regenerate the step
       const payload = {
         workflow_id: params.id,
-        feedback: feedback,
+        // Renamed from user_feedback to feedback to match backend expectation
+        feedback: userFeedback,
         previous_result: currentStepResult
       };
 
