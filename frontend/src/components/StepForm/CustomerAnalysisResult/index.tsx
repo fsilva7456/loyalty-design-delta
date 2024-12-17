@@ -1,13 +1,14 @@
 interface CustomerSegment {
   segment_name: string;
-  segment_size: number;
-  spend_potential: number;
-  churn_risk: number;
-  growth_opportunity: string;
+  description: string;
+  characteristics: string[];
+  preferences: string[];
+  size_percentage: number;
+  annual_value: number;
 }
 
 interface CustomerAnalysisResult {
-  customer_segments: CustomerSegment[];
+  segments: CustomerSegment[];
   insights: string;
 }
 
@@ -16,6 +17,12 @@ interface Props {
 }
 
 export default function CustomerAnalysisResult({ result }: Props) {
+  if (!result || !result.segments) {
+    return <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+      <p className="text-red-600">No analysis results available</p>
+    </div>;
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -28,36 +35,50 @@ export default function CustomerAnalysisResult({ result }: Props) {
                   Segment
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Size
+                  Description
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Spend Potential
+                  Size (%)
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Churn Risk
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Growth Opportunity
+                  Annual Value
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {result.customer_segments.map((segment, index) => (
+              {result.segments.map((segment, index) => (
                 <tr key={index}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {segment.segment_name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {segment.segment_size.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {segment.spend_potential.toFixed(1)} / 10
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {(segment.churn_risk * 100).toFixed(1)}%
-                  </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {segment.growth_opportunity}
+                    <div>
+                      <p className="mb-2">{segment.description}</p>
+                      <div className="space-y-2">
+                        <div>
+                          <strong className="text-gray-700">Characteristics:</strong>
+                          <ul className="list-disc list-inside ml-4">
+                            {segment.characteristics.map((char, idx) => (
+                              <li key={idx}>{char}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <strong className="text-gray-700">Preferences:</strong>
+                          <ul className="list-disc list-inside ml-4">
+                            {segment.preferences.map((pref, idx) => (
+                              <li key={idx}>{pref}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {segment.size_percentage.toFixed(1)}%
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${segment.annual_value.toLocaleString()}
                   </td>
                 </tr>
               ))}
