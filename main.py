@@ -18,7 +18,7 @@ import logging
 import sys
 from datetime import datetime
 
-# Configure logging - use only console logging for Railway
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -39,7 +39,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS with more permissive settings for Vercel preview deployments
+# Configure CORS with more permissive settings for Vercel deployments
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -49,22 +49,39 @@ app.add_middleware(
         
         # Production deployments
         "https://loyalty-design-delta.vercel.app",
+        "https://loyalty-design-delta-git-main-fsilva7456.vercel.app",
+        "https://loyalty-design-delta-fsilva7456.vercel.app",
         
-        # Preview deployments - using wildcards to match all preview URLs
-        "https://loyalty-design-delta-*.vercel.app",
+        # Preview deployments
         "https://loyalty-design-delta-git-*.vercel.app",
-        
-        # Generic pattern for all vercel preview deployments
-        "https://*.vercel.app"
+        "https://loyalty-design-delta-*.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
-    allow_origin_regex="https://loyalty-design-delta.*\.vercel\.app"
 )
 
 logger.info("CORS middleware configured")
+
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming {request.method} request to {request.url.path}")
+    try:
+        response = await call_next(request)
+        logger.info(f"Completed {request.method} request to {request.url.path} with status {response.status_code}")
+        return response
+    except Exception as e:
+        logger.error(f"Error processing {request.method} request to {request.url.path}: {str(e)}")
+        raise
+
+# Add response headers middleware for debugging
+@app.middleware("http")
+async def add_response_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Process-Time"] = str(datetime.now())
+    return response
 
 # Include routers
 app.include_router(competitor_analysis.router)
@@ -77,17 +94,9 @@ app.include_router(business_case.router)
 
 logger.info("Routers included")
 
-# Middleware for logging requests
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.info(f"Incoming {request.method} request to {request.url.path}")
-    response = await call_next(request)
-    logger.info(f"Completed {request.method} request to {request.url.path} with status {response.status_code}")
-    return response
-
 @app.get("/healthcheck")
 async def healthcheck():
-    return {"status": "healthy"}
+    return {"status": "healthy", "timestamp": str(datetime.now())}
 
 @app.get("/test-openai")
 async def test_openai():
