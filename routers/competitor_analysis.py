@@ -62,9 +62,13 @@ async def regenerate_competitor_analysis(
         body = await request.json()
         logger.info(f"Parsed request body: \n{pformat(body)}")
         
+        # Log the expected schema
+        logger.info(f"Expected schema: \n{pformat(CompetitorAnalysisRegenerationRequest.model_json_schema())}")
+        
         # Validate against the model
         data = CompetitorAnalysisRegenerationRequest(**body)
         logger.info("Request validation successful")
+        logger.info(f"Validated data: \n{pformat(data.model_dump())}")
         
         # Call service with regeneration data
         result = await service.regenerate_analysis(
