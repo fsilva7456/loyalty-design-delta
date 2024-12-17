@@ -28,6 +28,13 @@ export default function StepNavigator({
     }
   };
 
+  const formatStepName = (step: string) => {
+    return step
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   return (
     <div className="space-y-4">
       <nav aria-label="Progress">
@@ -39,7 +46,7 @@ export default function StepNavigator({
                   h-2.5 w-2.5 rounded-full`}
               />
               <span className="ml-2 text-sm font-medium text-gray-500">
-                {step.replace('_', ' ').charAt(0).toUpperCase() + step.slice(1).replace('_', ' ')}
+                {formatStepName(step)}
               </span>
             </li>
           ))}
@@ -64,7 +71,7 @@ export default function StepNavigator({
         isOpen={showFeedbackModal}
         onClose={() => setShowFeedbackModal(false)}
         onSubmit={handleRepeat}
-        title={`Regenerate ${currentStep.replace('_', ' ').charAt(0).toUpperCase() + currentStep.slice(1)}`}
+        title={`Regenerate ${formatStepName(currentStep)}`}
       />
     </div>
   );
