@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any
+from typing import List
 
 class Competitor(BaseModel):
     name: str
@@ -12,12 +12,12 @@ class CompetitorAnalysisRequest(BaseModel):
     company_name: str = Field(..., min_length=1)
     industry: str = Field(..., min_length=1)
 
+class CompetitorAnalysisRegenerationRequest(BaseModel):
+    workflow_id: str
+    user_feedback: str = Field(..., min_length=1)
+    previous_result: dict
+
 class CompetitorAnalysisResponse(BaseModel):
     workflow_id: str
     competitors: List[Competitor]
     market_insights: str
-
-class CompetitorAnalysisRegenerationRequest(BaseModel):
-    workflow_id: str
-    feedback: str = Field(..., min_length=1)
-    previous_result: Dict[str, Any] = Field(...)
