@@ -38,6 +38,12 @@ export default function StepForm({
   const [isRegenerationModalOpen, setIsRegenerationModalOpen] = useState(false);
   const params = useParams();
 
+  useEffect(() => {
+    if (result) {
+      console.log(`Debug - ${step} result:`, result);
+    }
+  }, [result, step]);
+
   // Helper function to get company name and industry
   const getCompanyAndIndustry = () => {
     const customerAnalysisResult = previousStepResults?.customer_analysis;
@@ -137,7 +143,7 @@ export default function StepForm({
         return (
           <LoyaltyObjectivesForm 
             onSubmit={onSubmit}
-            customerSegments={customerAnalysisResult?.customer_segments}
+            customerSegments={customerAnalysisResult?.segments || []}
             company_name={companyName}
             industry={industry}
           />
@@ -151,7 +157,7 @@ export default function StepForm({
         return (
           <LoyaltyMechanicsForm
             onSubmit={onSubmit}
-            customerSegments={customerResult?.customer_segments}
+            customerSegments={customerResult?.segments || []}
             objectives={objectivesResult?.objectives}
             company_name={mechCompanyName}
             industry={mechIndustry}
@@ -166,7 +172,7 @@ export default function StepForm({
         return (
           <CostEstimationForm
             onSubmit={onSubmit}
-            customerSegments={custResult?.customer_segments}
+            customerSegments={custResult?.segments || []}
             selectedMechanics={mechResult?.recommended_mechanics}
             company_name={costCompanyName}
             industry={costIndustry}
@@ -179,30 +185,52 @@ export default function StepForm({
   };
 
   const renderResult = () => {
-    switch (step) {
-      case 'competitor_analysis':
-        return <CompetitorAnalysisResult result={result} />;
-      
-      case 'customer_analysis':
-        return <CustomerAnalysisResult result={result} />;
-      
-      case 'loyalty_objectives':
-        return <LoyaltyObjectivesResult result={result} />;
-      
-      case 'loyalty_mechanics':
-        return <LoyaltyMechanicsResult result={result} />;
+    if (!result) {
+      return <div>No results available</div>;
+    }
 
-      case 'cost_estimation':
-        return <CostEstimationResult result={result} />;
-      
-      default:
-        return (
-          <div className="prose max-w-none">
-            <pre className="bg-gray-50 p-4 rounded-md overflow-auto">
-              {JSON.stringify(result, null, 2)}
+    try {
+      switch (step) {
+        case 'competitor_analysis':
+          return <CompetitorAnalysisResult result={result} />;
+        
+        case 'customer_analysis':
+          if (!result.segments || !Array.isArray(result.segments)) {
+            console.error('Invalid customer analysis result structure:', result);
+            throw new Error('Invalid customer analysis result structure');
+          }
+          return <CustomerAnalysisResult result={result} />;
+        
+        case 'loyalty_objectives':
+          return <LoyaltyObjectivesResult result={result} />;
+        
+        case 'loyalty_mechanics':
+          return <LoyaltyMechanicsResult result={result} />;
+
+        case 'cost_estimation':
+          return <CostEstimationResult result={result} />;
+        
+        default:
+          return (
+            <div className="prose max-w-none">
+              <pre className="bg-gray-50 p-4 rounded-md overflow-auto">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            </div>
+          );
+      }
+    } catch (error) {
+      console.error('Error rendering result:', error);
+      return (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-red-600">Error displaying results. Please try again or contact support if the issue persists.</p>
+          {process.env.NODE_ENV === 'development' && (
+            <pre className="mt-2 text-xs text-red-800">
+              {error instanceof Error ? error.message : 'Unknown error'}
             </pre>
-          </div>
-        );
+          )}
+        </div>
+      );
     }
   };
 
