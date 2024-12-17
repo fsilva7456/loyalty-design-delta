@@ -11,13 +11,12 @@ import LoyaltyMechanicsResult from './LoyaltyMechanicsResult';
 import CostEstimationForm from './CostEstimationForm';
 import CostEstimationResult from './CostEstimationResult';
 import RegenerationModal from '../RegenerationModal';
-import { useRegeneration } from './RegenerationContext';
 import { useParams } from 'next/navigation';
 
 interface StepFormProps {
   step: string;
   onSubmit: (data: any) => void;
-  onRegenerate?: (feedback: string) => void;
+  onRegenerate?: (feedback: string) => Promise<void>;
   result: any;
   previousStepResults?: Record<string, any>;
 }
@@ -38,14 +37,6 @@ export default function StepForm({
   const [error, setError] = useState<string>('');
   const [isRegenerationModalOpen, setIsRegenerationModalOpen] = useState(false);
   const params = useParams();
-  const { setPreviousResult, setOriginalRequest } = useRegeneration();
-
-  // Store result and request when they change
-  useEffect(() => {
-    if (result) {
-      setPreviousResult(result);
-    }
-  }, [result, setPreviousResult]);
 
   // Helper function to get company name and industry
   const getCompanyAndIndustry = () => {
@@ -76,8 +67,16 @@ export default function StepForm({
   };
 
   const handleRegenerate = async (feedback: string) => {
-    if (onRegenerate) {
-      onRegenerate(feedback);
+    if (!onRegenerate) {
+      console.error('Regeneration handler not provided');
+      throw new Error('Regeneration not available');
+    }
+
+    try {
+      await onRegenerate(feedback);
+    } catch (err) {
+      console.error('Error during regeneration:', err);
+      throw err;
     }
   };
 
@@ -219,23 +218,27 @@ export default function StepForm({
         {!result ? renderForm() : (
           <>
             {renderResult()}
-            <div className="mt-4">
-              <button
-                onClick={() => setIsRegenerationModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Regenerate Response
-              </button>
-            </div>
+            {onRegenerate && (
+              <div className="mt-4">
+                <button
+                  onClick={() => setIsRegenerationModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Regenerate Response
+                </button>
+              </div>
+            )}
           </>
         )}
 
-        <RegenerationModal
-          isOpen={isRegenerationModalOpen}
-          onClose={() => setIsRegenerationModalOpen(false)}
-          onSubmit={handleRegenerate}
-          title={`Regenerate ${step.replace('_', ' ').charAt(0).toUpperCase() + step.slice(1)}`}
-        />
+        {onRegenerate && (
+          <RegenerationModal
+            isOpen={isRegenerationModalOpen}
+            onClose={() => setIsRegenerationModalOpen(false)}
+            onSubmit={handleRegenerate}
+            title={`Regenerate ${step.replace('_', ' ').charAt(0).toUpperCase() + step.slice(1)}`}
+          />
+        )}
       </div>
     </div>
   );
