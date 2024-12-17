@@ -62,10 +62,6 @@ async def regenerate_competitor_analysis(
         body = await request.json()
         logger.info(f"Parsed request body: \n{pformat(body)}")
         
-        # Log the expected schema
-        schema = CompetitorAnalysisRegenerationRequest.model_json_schema()
-        logger.info(f"Expected schema: \n{pformat(schema)}")
-        
         # Validate against the model
         data = CompetitorAnalysisRegenerationRequest(**body)
         logger.info("Request validation successful")
@@ -73,7 +69,7 @@ async def regenerate_competitor_analysis(
         # Call service with regeneration data
         result = await service.regenerate_analysis(
             workflow_id=data.workflow_id,
-            feedback=data.feedback,
+            user_feedback=data.user_feedback,
             previous_result=data.previous_result
         )
         
