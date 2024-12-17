@@ -5,8 +5,10 @@ from models.competitor_analysis import (
     CompetitorAnalysisRegenerationRequest
 )
 from services.competitor_analysis import CompetitorAnalysisService
+from fastapi.encoders import jsonable_encoder
 from pprint import pformat
 import logging
+import json
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -49,16 +51,24 @@ async def analyze_competitors(
 @router.post("/step/competitor_analysis/regenerate", response_model=CompetitorAnalysisResponse)
 async def regenerate_competitor_analysis(
     request: Request,
-    data: CompetitorAnalysisRegenerationRequest,
     service: CompetitorAnalysisService = Depends(get_competitor_analysis_service)
 ):
     try:
-        # Log incoming regeneration request
-        body = await request.json()
-        logger.info(f"Received competitor analysis regeneration request: \n{pformat(body)}")
+        # Log raw request body first
+        raw_body = await request.body()
+        logger.info(f"Raw request body: {raw_body.decode()}")
         
-        # Log validation info
-        logger.info(f"Validating request against model: \n{pformat(CompetitorAnalysisRegenerationRequest.model_json_schema())}")
+        # Parse the JSON body
+        body = await request.json()
+        logger.info(f"Parsed request body: \n{pformat(body)}")
+        
+        # Log the expected schema
+        schema = CompetitorAnalysisRegenerationRequest.model_json_schema()
+        logger.info(f"Expected schema: \n{pformat(schema)}")
+        
+        # Validate against the model
+        data = CompetitorAnalysisRegenerationRequest(**body)
+        logger.info("Request validation successful")
         
         # Call service with regeneration data
         result = await service.regenerate_analysis(
