@@ -39,7 +39,7 @@ Ensure to:
 4. Provide actionable insights"""
         return prompt
 
-    def _construct_regeneration_prompt(self, previous_result: dict, feedback: str) -> str:
+    def _construct_regeneration_prompt(self, previous_result: dict, user_feedback: str) -> str:
         logger.info("Constructing regeneration prompt with feedback")
         prompt = f"""Based on the previous competitor analysis and feedback, provide an updated analysis.
 
@@ -47,7 +47,7 @@ Previous analysis:
 {previous_result}
 
 Feedback:
-{feedback}
+{user_feedback}
 
 Provide an updated market analysis in JSON format with the following structure:
 {{
@@ -104,12 +104,12 @@ Ensure to:
                 detail=f"Error in competitor analysis: {str(e)}"
             )
 
-    async def regenerate_analysis(self, workflow_id: str, feedback: str, previous_result: dict) -> CompetitorAnalysisResponse:
+    async def regenerate_analysis(self, workflow_id: str, user_feedback: str, previous_result: dict) -> CompetitorAnalysisResponse:
         try:
             logger.info(f"Starting competitor analysis regeneration for workflow {workflow_id}")
             
             # Generate regeneration prompt
-            prompt = self._construct_regeneration_prompt(previous_result, feedback)
+            prompt = self._construct_regeneration_prompt(previous_result, user_feedback)
             logger.info("Regeneration prompt constructed successfully")
             
             # Get OpenAI response
