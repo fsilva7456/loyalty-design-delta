@@ -33,10 +33,10 @@ export const executeStep = async (stepName: string, payload: any) => {
     if (stepName.endsWith('/regenerate')) {
       const regenerationPayload: RegenerationPayload = {
         workflow_id: payload.workflow_id,
-        feedback: payload.user_feedback || payload.feedback, // Convert user_feedback to feedback
+        feedback: payload.feedback,  // Always use feedback as the field name
         previous_result: payload.previous_result
       };
-      console.log('Transformed regeneration payload:', regenerationPayload);
+      console.log('Regeneration payload:', regenerationPayload);
       const response = await api.post(`/step/${stepName}`, regenerationPayload);
       return response.data;
     }
