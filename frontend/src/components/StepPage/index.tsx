@@ -79,14 +79,21 @@ export default function StepPage() {
     setLoading(true);
 
     try {
+      // Get the current step result
+      const currentStepResult = state.stepResults[currentStep] || stepResult;
+      
+      if (!currentStepResult) {
+        throw new Error('No previous result available for regeneration');
+      }
+
       // Use the feedback to regenerate the step
       const payload = {
         workflow_id: params.id,
-        feedback,
-        previous_result: state.stepResults[currentStep] || stepResult
+        feedback: feedback,
+        previous_result: currentStepResult
       };
 
-      console.log(`Regenerating ${currentStep} with payload:`, payload);
+      console.log(`Regenerating ${currentStep} with payload:`, JSON.stringify(payload, null, 2));
 
       const result = await executeStep(`${currentStep}/regenerate`, payload);
       console.log(`${currentStep} regeneration result:`, result);
