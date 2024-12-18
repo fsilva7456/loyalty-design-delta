@@ -1,132 +1,143 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { startWorkflow, executeStep } from '@/services/api';
 import StepForm from '@/components/StepForm';
 import StepNavigator from '@/components/StepNavigator';
-import { RegenerationProvider } from '@/components/StepForm/RegenerationContext';
+import { toast } from 'react-hot-toast';
 
-const WORKFLOW_STEPS = [
-  'competitor_analysis',
-  'customer_analysis',
-  'loyalty_objectives',
-  'loyalty_mechanics',
-  'cost_estimation'
-];
-
-export default function WorkflowPage({ params }: { params: { id: string } }) {
-  return (
-    <RegenerationProvider>
-      <WorkflowContent params={params} />
-    </RegenerationProvider>
-  );
+interface WorkflowState {
+  customer_analysis?: any;
+  competitor_analysis?: any;
+  loyalty_objectives?: any;
+  loyalty_mechanics?: any;
+  cost_estimation?: any;
 }
 
-function WorkflowContent({ params }: { params: { id: string } }) {
-  const [currentStep, setCurrentStep] = useState('competitor_analysis');
-  const [stepResults, setStepResults] = useState<Record<string, any>>({});
+export default function WorkflowPage({ params }: { params: { id: string } }) {
+  const [currentStep, setCurrentStep] = useState('customer_analysis');
+  const [workflowState, setWorkflowState] = useState<WorkflowState>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-9eb2.up.railway.app';
+  useEffect(() => {
+    const initializeWorkflow = async () => {
+      try {
+        if (!params.id) {
+          const result = await startWorkflow();
+          // Handle workflow initialization
+          console.log('New workflow started:', result);
+        }
+      } catch (error) {
+        console.error('Error initializing workflow:', error);
+        toast.error('Failed to initialize workflow');
+      }
+    };
+
+    initializeWorkflow();
+  }, [params.id]);
 
   const handleStepSubmit = async (data: any) => {
     setIsLoading(true);
-    setError(null);
     try {
-      const response = await fetch(`${API_URL}/step/${currentStep}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...data,
-          workflow_id: params.id
-        }),
+      console.log(`Submitting ${currentStep} data:`, data);
+      
+      const result = await executeStep(currentStep, {
+        workflow_id: params.id,
+        ...data
       });
 
-      if (!response.ok) {
-        throw new Error('Step submission failed');
-      }
-
-      const result = await response.json();
-      setStepResults(prev => ({
+      console.log(`${currentStep} result:`, result);
+      
+      setWorkflowState(prev => ({
         ...prev,
         [currentStep]: result
       }));
+
+      toast.success('Analysis completed successfully');
     } catch (error) {
-      console.error('Error during step submission:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      console.error(`Error in ${currentStep}:`, error);
+      toast.error('Failed to complete analysis');
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleStepRegenerate = async (feedback: string) => {
+  const handleRegenerate = async (feedback: string) => {
     setIsLoading(true);
-    setError(null);
     try {
-      const response = await fetch(`${API_URL}/step/${currentStep}/regenerate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          workflow_id: params.id,
-          previous_result: stepResults[currentStep],
-          user_feedback: feedback,
-          original_request: stepResults[currentStep]?.original_request
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Regeneration failed');
+      console.log(`Regenerating ${currentStep} with feedback:`, feedback);
+      
+      const previousResult = workflowState[currentStep];
+      if (!previousResult) {
+        throw new Error('No previous result found for regeneration');
       }
 
-      const result = await response.json();
-      setStepResults(prev => ({
+      const result = await executeStep(`${currentStep}/regenerate`, {
+        workflow_id: params.id,
+        user_feedback: feedback,
+        previous_result: previousResult
+      });
+
+      console.log(`${currentStep} regeneration result:`, result);
+      
+      setWorkflowState(prev => ({
         ...prev,
         [currentStep]: result
       }));
+
+      toast.success('Analysis regenerated successfully');
     } catch (error) {
-      console.error('Error during regeneration:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      console.error(`Error regenerating ${currentStep}:`, error);
+      toast.error('Failed to regenerate analysis');
+      throw error;
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getPreviousStepResults = () => {
+    // Filter out current step from previous results
+    const { [currentStep]: _, ...previousResults } = workflowState;
+    return previousResults;
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-md">
-          {error}
-        </div>
-      )}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="space-y-8">
+          {/* Step Navigation */}
+          <StepNavigator
+            currentStep={currentStep}
+            completedSteps={Object.keys(workflowState)}
+            onStepChange={setCurrentStep}
+            isLoading={isLoading}
+          />
 
-      <StepNavigator
-        steps={WORKFLOW_STEPS}
-        currentStep={currentStep}
-        onNext={() => {
-          const currentIndex = WORKFLOW_STEPS.indexOf(currentStep);
-          if (currentIndex < WORKFLOW_STEPS.length - 1) {
-            setCurrentStep(WORKFLOW_STEPS[currentIndex + 1]);
-          }
-        }}
-        onRepeat={handleStepRegenerate}
-      />
+          {/* Current Step Form/Result */}
+          <StepForm
+            step={currentStep}
+            onSubmit={handleStepSubmit}
+            onRegenerate={handleRegenerate}
+            result={workflowState[currentStep]}
+            previousStepResults={getPreviousStepResults()}
+          />
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          {/* Debug Information (Development Only) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-8 p-4 bg-gray-100 rounded-md">
+              <h3 className="text-sm font-medium text-gray-900">Debug Info</h3>
+              <pre className="mt-2 text-xs text-gray-600 overflow-auto">
+                {JSON.stringify({
+                  currentStep,
+                  workflowState,
+                  params
+                }, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
-      ) : (
-        <StepForm
-          step={currentStep}
-          onSubmit={handleStepSubmit}
-          result={stepResults[currentStep]}
-          previousStepResults={stepResults}
-        />
-      )}
+      </div>
     </div>
   );
 }
