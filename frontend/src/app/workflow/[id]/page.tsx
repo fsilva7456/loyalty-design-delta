@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { startWorkflow } from '@/services/api';
+import { startWorkflow, executeStep } from '@/services/api';
 import StepForm from '@/components/StepForm';
 import StepNavigator from '@/components/StepNavigator';
 import { useWorkflow } from '@/contexts/WorkflowContext';
@@ -57,6 +57,65 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
     return nextStep || steps[0];
   };
 
+  const handleStepSubmit = async (formData: any) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const payload = {
+        workflow_id: params.id,
+        ...formData
+      };
+
+      console.log(`Executing ${currentStep} with payload:`, payload);
+      const result = await executeStep(currentStep, payload);
+      
+      dispatch({
+        type: 'SET_STEP_RESULT',
+        payload: { step: currentStep, result }
+      });
+
+      toast.success('Step completed successfully');
+    } catch (error) {
+      console.error(`Error executing ${currentStep}:`, error);
+      toast.error('Failed to complete step');
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: error instanceof Error ? error.message : 'Failed to complete step'
+      });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  const handleRegenerate = async (feedback: string) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const payload = {
+        workflow_id: params.id,
+        user_feedback: feedback,
+        previous_result: state.stepResults[currentStep]
+      };
+
+      console.log(`Regenerating ${currentStep} with payload:`, payload);
+      const result = await executeStep(`${currentStep}/regenerate`, payload);
+      
+      dispatch({
+        type: 'SET_STEP_RESULT',
+        payload: { step: currentStep, result }
+      });
+
+      toast.success('Step regenerated successfully');
+    } catch (error) {
+      console.error(`Error regenerating ${currentStep}:`, error);
+      toast.error('Failed to regenerate step');
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: error instanceof Error ? error.message : 'Failed to regenerate step'
+      });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
   const currentStep = getCurrentStep();
   const currentStepResult = state.stepResults[currentStep] as StepResult;
 
@@ -76,6 +135,8 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
 
           <StepForm
             step={currentStep}
+            onSubmit={handleStepSubmit}
+            onRegenerate={handleRegenerate}
             result={currentStepResult}
             previousStepResults={state.stepResults}
           />
