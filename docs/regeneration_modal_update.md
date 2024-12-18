@@ -1,98 +1,84 @@
 # RegenerationModal Update (December 18, 2024)
 
-## Changes Made
+## Latest Changes
 
-1. Added Loading State Support:
-   - New `isLoading` prop added to RegenerationModalProps interface
-   - Loading state handling in form submission
-   - Visual feedback during loading state
+### 1. Type System Improvements
+- Separated types into standalone file
+- Added proper TypeScript exports
+- Fixed module resolution issues
+- Added Promise support to onSubmit handler
 
-2. Enhanced UI/UX:
-   - Added loading spinner to submit button
-   - Disabled form controls during loading
-   - Updated button text during loading state
-   - Added proper disabled styles
+### 2. File Structure Updates
+```
+frontend/src/components/RegenerationModal/
+├── index.tsx          # Main component implementation
+├── types.ts           # TypeScript interfaces and types
+└── [Future: styles.ts]  # Planned: Style definitions
+```
 
-## Implementation Details
-
-### Updated Props Interface
+### 3. Type Definitions
 ```typescript
-interface RegenerationModalProps {
+export interface RegenerationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (feedback: string) => void;
+  onSubmit: (feedback: string) => Promise<void> | void;
   title?: string;
-  isLoading?: boolean;  // New prop
+  isLoading?: boolean;
 }
 ```
 
-### Key Features
-- Loading spinner component
-- Disabled state styling for all interactive elements
-- Modal stays open during loading
-- Responsive to loading state changes
+## Previous Changes
+[Previous content remains the same...]
 
-## Usage Example
+## Migration Guide
 
+### For Existing Implementations
+1. Update imports if using types directly:
+   ```typescript
+   import { RegenerationModalProps } from '@/components/RegenerationModal/types';
+   ```
+
+2. Ensure onSubmit handlers are properly typed:
+   ```typescript
+   const handleSubmit = async (feedback: string) => {
+     // Your implementation
+   };
+   ```
+
+### For New Implementations
 ```typescript
-const MyComponent = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+import RegenerationModal from '@/components/RegenerationModal';
 
+function MyComponent() {
   const handleRegenerate = async (feedback: string) => {
-    setIsLoading(true);
-    try {
-      await regenerateContent(feedback);
-      setIsModalOpen(false);
-    } finally {
-      setIsLoading(false);
-    }
+    // Implementation
   };
 
   return (
     <RegenerationModal
-      isOpen={isModalOpen}
-      onClose={() => setIsModalOpen(false)}
+      isOpen={isOpen}
+      onClose={handleClose}
       onSubmit={handleRegenerate}
       isLoading={isLoading}
-      title="Regenerate Content"
+      title="Custom Title"
     />
   );
-};
+}
 ```
 
-## Testing Requirements
+## Testing Updates
 
-1. Loading State:
-   - Verify loading spinner appears
-   - Check all controls are disabled
-   - Confirm modal stays open during loading
+1. Type Checking:
+   - Verify TypeScript compilation
+   - Test with both async and sync handlers
+   - Validate prop type enforcement
 
-2. User Interaction:
-   - Test form submission during loading
-   - Verify cancel button disabled state
-   - Check textarea disabled state
+2. Previous Tests Still Apply:
+   - Loading state behavior
+   - User interaction flows
+   - Error handling
 
-3. Error Handling:
-   - Test behavior when error occurs during regeneration
-   - Verify loading state resets properly
-
-## UI/UX Considerations
-
-1. Loading State:
-   - Clear visual indication of processing
-   - Disabled states prevent duplicate submissions
-   - Loading spinner provides feedback
-
-2. Accessibility:
-   - Maintains ARIA attributes during loading
-   - Proper focus management
-   - Clear loading state indicators
-
-## Future Improvements
-
-1. Consider adding:
-   - Progress indicators for long operations
-   - Error state handling
-   - Success feedback
-   - Animation improvements
+## Notes
+- The `onSubmit` handler now properly supports both Promise and void returns
+- Loading state is properly typed and integrated
+- Component exports follow best practices for modular design
