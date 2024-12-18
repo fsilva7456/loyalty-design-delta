@@ -1,3 +1,5 @@
+import { WorkflowResponse } from '@/types/workflow';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_BASE_URL) {
@@ -33,12 +35,12 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
   }
 }
 
-export const startWorkflow = async () => {
-  const { data, error } = await fetchAPI('/start_workflow', {
+export const startWorkflow = async (): Promise<WorkflowResponse> => {
+  const { data, error } = await fetchAPI<WorkflowResponse>('/start_workflow', {
     method: 'POST',
   });
 
-  if (error) throw new Error(error);
+  if (error || !data) throw new Error(error || 'Failed to start workflow');
   return data;
 };
 
@@ -48,6 +50,6 @@ export const executeStep = async (stepName: string, payload: any) => {
     body: JSON.stringify(payload),
   });
 
-  if (error) throw new Error(error);
+  if (error || !data) throw new Error(error || 'Failed to execute step');
   return data;
 };
