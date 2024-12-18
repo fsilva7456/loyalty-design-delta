@@ -6,21 +6,14 @@ import { executeStep } from '@/services/api';
 import { useWorkflow } from '@/contexts/WorkflowContext';
 import StepNavigator from '@/components/StepNavigator';
 import StepForm from '@/components/StepForm';
-
-interface RegenerationPayload {
-  workflow_id: string;
-  user_feedback: string;
-  previous_result: any;
-}
-
-type StepResult = Record<string, any> | null;
+import { BaseStepPayload, RegenerationPayload, StepResult } from '@/types/api';
 
 export default function StepPage() {
   const router = useRouter();
   const params = useParams();
   const { state, dispatch } = useWorkflow();
   const [currentStep, setCurrentStep] = useState('competitor_analysis');
-  const [stepResult, setStepResult] = useState<StepResult>(null);
+  const [stepResult, setStepResult] = useState<StepResult | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -35,21 +28,20 @@ export default function StepPage() {
   ];
 
   useEffect(() => {
-    // Debug logs
     console.log('Current step:', currentStep);
     console.log('Workflow state:', state);
     console.log('Params:', params);
   }, [currentStep, state, params]);
 
-  const handleStepSubmit = async (formData: any) => {
+  const handleStepSubmit = async (formData: Partial<BaseStepPayload>) => {
     setError('');
     setLoading(true);
 
     try {
-      // Always include workflow_id from params
-      const payload = {
-        workflow_id: params.id,
-        ...formData
+      const payload: BaseStepPayload = {
+        workflow_id: params.id as string,
+        company_name: formData.company_name || '',
+        industry: formData.industry || ''
       };
 
       console.log(`Submitting ${currentStep} with payload:`, payload);
@@ -95,6 +87,8 @@ export default function StepPage() {
 
       const payload: RegenerationPayload = {
         workflow_id: params.id as string,
+        company_name: state.companyName || '',
+        industry: state.industry || '',
         user_feedback: feedback,
         previous_result: currentStepResult
       };
@@ -143,9 +137,9 @@ export default function StepPage() {
             <StepForm
               step={currentStep}
               onSubmit={handleStepSubmit}
+              onRegenerate={handleRepeat}
               result={stepResult}
               previousStepResults={state.stepResults}
-              onRegenerate={handleRepeat}
             />
           )}
         </div>
