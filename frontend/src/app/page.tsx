@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
 
 export default function Home() {
   const router = useRouter();
@@ -16,14 +15,21 @@ export default function Home() {
     setError(null);
     
     try {
-      const response = await axios.post(`${API_URL}/start_workflow`, {}, {
+      const response = await fetch(`${API_URL}/start_workflow`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         }
       });
       
-      if (response.data?.workflow_id) {
-        router.push(`/workflow/${response.data.workflow_id}`);
+      if (!response.ok) {
+        throw new Error('Failed to start workflow');
+      }
+      
+      const data = await response.json();
+      
+      if (data?.workflow_id) {
+        router.push(`/workflow/${data.workflow_id}`);
       } else {
         throw new Error('No workflow ID received');
       }
