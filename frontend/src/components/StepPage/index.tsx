@@ -13,12 +13,14 @@ interface RegenerationPayload {
   previous_result: any;
 }
 
+type StepResult = Record<string, any> | null;
+
 export default function StepPage() {
   const router = useRouter();
   const params = useParams();
   const { state, dispatch } = useWorkflow();
   const [currentStep, setCurrentStep] = useState('competitor_analysis');
-  const [stepResult, setStepResult] = useState(null);
+  const [stepResult, setStepResult] = useState<StepResult>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -93,7 +95,7 @@ export default function StepPage() {
 
       const payload: RegenerationPayload = {
         workflow_id: params.id as string,
-        user_feedback: feedback,  // Using user_feedback instead of feedback
+        user_feedback: feedback,
         previous_result: currentStepResult
       };
 
@@ -143,6 +145,7 @@ export default function StepPage() {
               onSubmit={handleStepSubmit}
               result={stepResult}
               previousStepResults={state.stepResults}
+              onRegenerate={handleRepeat}
             />
           )}
         </div>
