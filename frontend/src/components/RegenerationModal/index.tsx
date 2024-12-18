@@ -1,12 +1,7 @@
-import { useState } from 'react';
+"use client";
 
-interface RegenerationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (feedback: string) => void;
-  title?: string;
-  isLoading?: boolean;
-}
+import { useState } from 'react';
+import { RegenerationModalProps } from './types';
 
 export default function RegenerationModal({
   isOpen,
@@ -79,3 +74,5 @@ export default function RegenerationModal({
     </div>
   );
 }
+
+export type { RegenerationModalProps };
