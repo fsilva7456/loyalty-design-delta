@@ -13,13 +13,15 @@ import CostEstimationResult from './CostEstimationResult';
 import RegenerationModal from '../RegenerationModal';
 import { useParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
+import { WorkflowStep, STEP_LABELS } from '@/types/workflow';
+import type { StepResult } from '@/types/api';
 
 interface StepFormProps {
-  step: string;
+  step: WorkflowStep;
   onSubmit: (data: any) => Promise<void>;
   onRegenerate?: (feedback: string) => Promise<void>;
-  result: any;
-  previousStepResults?: Record<string, any>;
+  result: StepResult | null;
+  previousStepResults?: Record<string, StepResult>;
 }
 
 interface FormData {
@@ -200,8 +202,26 @@ export default function StepForm({
           />
         );
 
+      case 'performance_simulation':
+      case 'business_case':
+        const companyInfo = getCompanyAndIndustry();
+        return (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-yellow-700">
+              This step is coming soon...
+            </p>
+          </div>
+        );
+
       default:
-        return <div>Form not implemented for this step</div>;
+        const exhaustiveCheck: never = step;
+        return (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-700">
+              Unhandled step type: {exhaustiveCheck}
+            </p>
+          </div>
+        );
     }
   };
 
@@ -233,12 +253,23 @@ export default function StepForm({
         case 'cost_estimation':
           return <CostEstimationResult result={result} />;
         
-        default:
+        case 'performance_simulation':
+        case 'business_case':
           return (
             <div className="prose max-w-none">
               <pre className="bg-gray-50 p-4 rounded-md overflow-auto">
                 {JSON.stringify(result, null, 2)}
               </pre>
+            </div>
+          );
+
+        default:
+          const exhaustiveCheck: never = step;
+          return (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-700">
+                Unhandled step type: {exhaustiveCheck}
+              </p>
             </div>
           );
       }
@@ -286,7 +317,8 @@ export default function StepForm({
             isOpen={isRegenerationModalOpen}
             onClose={() => setIsRegenerationModalOpen(false)}
             onSubmit={handleRegenerate}
-            title={`Regenerate ${step.replace('_', ' ').charAt(0).toUpperCase() + step.slice(1)}`}
+            title={`Regenerate ${STEP_LABELS[step]}`}
+            isLoading={isLoading}
           />
         )}
       </div>
