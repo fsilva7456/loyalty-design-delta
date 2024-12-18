@@ -2,40 +2,29 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { startWorkflow } from '@/services/api';
+import { useWorkflow } from '@/contexts/WorkflowContext';
+import { toast } from 'react-hot-toast';
 
 export default function Home() {
   const router = useRouter();
+  const { dispatch } = useWorkflow();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-9eb2.up.railway.app';
 
   const handleStartClick = async () => {
     setIsLoading(true);
-    setError(null);
     
     try {
-      const response = await fetch(`${API_URL}/start_workflow`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const result = await startWorkflow();
+      dispatch({ type: 'SET_WORKFLOW_ID', payload: result.workflow_id });
+      router.push(`/workflow/${result.workflow_id}`);
+    } catch (error) {
+      console.error('Error starting workflow:', error);
+      toast.error('Failed to start workflow. Please try again.');
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: error instanceof Error ? error.message : 'Failed to start workflow'
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to start workflow');
-      }
-      
-      const data = await response.json();
-      
-      if (data?.workflow_id) {
-        router.push(`/workflow/${data.workflow_id}`);
-      } else {
-        throw new Error('No workflow ID received');
-      }
-    } catch (err) {
-      console.error('Error starting workflow:', err);
-      setError('Failed to start workflow. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -49,12 +38,6 @@ export default function Home() {
       <p className="text-xl text-gray-600 mb-12 max-w-2xl">
         Create, analyze, and optimize your loyalty program strategy with AI-powered insights
       </p>
-      
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-md">
-          {error}
-        </div>
-      )}
 
       <button
         onClick={handleStartClick}
