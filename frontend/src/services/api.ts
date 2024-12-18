@@ -1,14 +1,10 @@
 import { WorkflowResponse } from '@/types/workflow';
+import { APIResponse, BaseStepPayload, StepResult } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_BASE_URL) {
   console.error('NEXT_PUBLIC_API_URL is not configured');
-}
-
-interface APIResponse<T> {
-  data?: T;
-  error?: string;
 }
 
 async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<APIResponse<T>> {
@@ -44,8 +40,8 @@ export const startWorkflow = async (): Promise<WorkflowResponse> => {
   return data;
 };
 
-export const executeStep = async (stepName: string, payload: any) => {
-  const { data, error } = await fetchAPI(`/step/${stepName}`, {
+export const executeStep = async <T extends StepResult>(stepName: string, payload: BaseStepPayload): Promise<T> => {
+  const { data, error } = await fetchAPI<T>(`/step/${stepName}`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
