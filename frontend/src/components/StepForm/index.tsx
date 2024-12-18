@@ -12,10 +12,11 @@ import CostEstimationForm from './CostEstimationForm';
 import CostEstimationResult from './CostEstimationResult';
 import RegenerationModal from '../RegenerationModal';
 import { useParams } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 interface StepFormProps {
   step: string;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any) => Promise<void>;
   onRegenerate?: (feedback: string) => Promise<void>;
   result: any;
   previousStepResults?: Record<string, any>;
@@ -36,6 +37,7 @@ export default function StepForm({
   const [formData, setFormData] = useState<FormData>({});
   const [error, setError] = useState<string>('');
   const [isRegenerationModalOpen, setIsRegenerationModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const params = useParams();
 
   useEffect(() => {
@@ -60,16 +62,25 @@ export default function StepForm({
     };
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    if (!formData.company_name || !formData.industry) {
-      setError('Company name and industry are required');
-      return;
+    try {
+      if (!formData.company_name || !formData.industry) {
+        setError('Company name and industry are required');
+        return;
+      }
+
+      await onSubmit(formData);
+    } catch (err) {
+      console.error('Form submission error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      toast.error('Failed to submit form. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    onSubmit(formData);
   };
 
   const handleRegenerate = async (feedback: string) => {
@@ -78,11 +89,16 @@ export default function StepForm({
       throw new Error('Regeneration not available');
     }
 
+    setIsLoading(true);
     try {
       await onRegenerate(feedback);
+      setIsRegenerationModalOpen(false);
     } catch (err) {
       console.error('Error during regeneration:', err);
+      toast.error('Failed to regenerate analysis. Please try again.');
       throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -109,6 +125,7 @@ export default function StepForm({
                 value={formData.company_name || ''}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -122,19 +139,21 @@ export default function StepForm({
                 value={formData.industry || ''}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                disabled={isLoading}
               />
             </div>
             <button
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              disabled={isLoading}
             >
-              Analyze Competitors
+              {isLoading ? 'Analyzing...' : 'Analyze Competitors'}
             </button>
           </form>
         );
       
       case 'customer_analysis':
-        return <CustomerAnalysisForm onSubmit={onSubmit} />;
+        return <CustomerAnalysisForm onSubmit={onSubmit} isLoading={isLoading} />;
       
       case 'loyalty_objectives':
         const { companyName, industry } = getCompanyAndIndustry();
@@ -146,6 +165,7 @@ export default function StepForm({
             customerSegments={customerAnalysisResult?.segments || []}
             company_name={companyName}
             industry={industry}
+            isLoading={isLoading}
           />
         );
       
@@ -161,6 +181,7 @@ export default function StepForm({
             objectives={objectivesResult?.objectives}
             company_name={mechCompanyName}
             industry={mechIndustry}
+            isLoading={isLoading}
           />
         );
 
@@ -176,6 +197,7 @@ export default function StepForm({
             selectedMechanics={mechResult?.recommended_mechanics}
             company_name={costCompanyName}
             industry={costIndustry}
+            isLoading={isLoading}
           />
         );
 
@@ -190,13 +212,16 @@ export default function StepForm({
     }
 
     try {
+      console.log(`Rendering result for step ${step}:`, result);
+      
       switch (step) {
         case 'competitor_analysis':
           return <CompetitorAnalysisResult result={result} />;
         
         case 'customer_analysis':
+          // Validate customer analysis result structure
           if (!result.segments || !Array.isArray(result.segments)) {
-            console.error('Invalid customer analysis result structure:', result);
+            console.error('Invalid customer analysis result:', result);
             throw new Error('Invalid customer analysis result structure');
           }
           return <CustomerAnalysisResult result={result} />;
@@ -223,11 +248,9 @@ export default function StepForm({
       console.error('Error rendering result:', error);
       return (
         <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-600">Error displaying results. Please try again or contact support if the issue persists.</p>
-          {process.env.NODE_ENV === 'development' && (
-            <pre className="mt-2 text-xs text-red-800">
-              {error instanceof Error ? error.message : 'Unknown error'}
-            </pre>
+          <p className="text-red-600">Error displaying results. Please try again.</p>
+          {process.env.NODE_ENV === 'development' && error instanceof Error && (
+            <pre className="mt-2 text-xs text-red-800">{error.message}</pre>
           )}
         </div>
       );
@@ -250,9 +273,10 @@ export default function StepForm({
               <div className="mt-4">
                 <button
                   onClick={() => setIsRegenerationModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  disabled={isLoading}
                 >
-                  Regenerate Response
+                  {isLoading ? 'Regenerating...' : 'Regenerate Response'}
                 </button>
               </div>
             )}
@@ -265,6 +289,7 @@ export default function StepForm({
             onClose={() => setIsRegenerationModalOpen(false)}
             onSubmit={handleRegenerate}
             title={`Regenerate ${step.replace('_', ' ').charAt(0).toUpperCase() + step.slice(1)}`}
+            isLoading={isLoading}
           />
         )}
       </div>
