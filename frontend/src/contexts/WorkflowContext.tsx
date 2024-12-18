@@ -1,11 +1,10 @@
 "use client";
 
 import { createContext, useContext, useReducer, ReactNode } from 'react';
-import { StepResult } from '@/types/api';
 
 export interface WorkflowState {
   workflowId: string | null;
-  stepResults: Record<string, StepResult>;
+  stepResults: Record<string, any>;
   businessCase: any | null;
   companyName: string;
   industry: string;
@@ -13,9 +12,9 @@ export interface WorkflowState {
   error: string | null;
 }
 
-export type WorkflowAction =
+type WorkflowAction =
   | { type: 'SET_WORKFLOW_ID'; payload: string }
-  | { type: 'SET_STEP_RESULT'; payload: { step: string; result: StepResult } }
+  | { type: 'SET_STEP_RESULT'; payload: { step: string; result: any } }
   | { type: 'SET_BUSINESS_CASE'; payload: any }
   | { type: 'SET_COMPANY_INFO'; payload: { companyName: string; industry: string } }
   | { type: 'SET_LOADING'; payload: boolean }
@@ -28,7 +27,7 @@ const initialState: WorkflowState = {
   companyName: '',
   industry: '',
   isLoading: false,
-  error: null,
+  error: null
 };
 
 const WorkflowContext = createContext<{
@@ -44,20 +43,17 @@ function workflowReducer(state: WorkflowState, action: WorkflowAction): Workflow
     case 'SET_STEP_RESULT':
       return {
         ...state,
-        stepResults: { 
-          ...state.stepResults, 
-          [action.payload.step]: action.payload.result 
-        }
+        stepResults: { ...state.stepResults, [action.payload.step]: action.payload.result }
       };
     
     case 'SET_BUSINESS_CASE':
       return { ...state, businessCase: action.payload };
     
     case 'SET_COMPANY_INFO':
-      return { 
-        ...state, 
+      return {
+        ...state,
         companyName: action.payload.companyName,
-        industry: action.payload.industry 
+        industry: action.payload.industry
       };
     
     case 'SET_LOADING':
@@ -81,7 +77,6 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Custom hook to use workflow context
 export const useWorkflow = () => {
   const context = useContext(WorkflowContext);
   if (!context) {
