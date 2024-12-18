@@ -32,7 +32,7 @@ try:
     settings = Settings()
     if settings.ALLOWED_ORIGINS == "*":
         print("Warning: ALLOWED_ORIGINS not set, defaulting to allow all origins (not recommended for production)")
- except Exception as e:
+except Exception as e:
     print(f"Error loading settings: {e}")
     # Provide fallback settings for essential operation
     settings = Settings(
