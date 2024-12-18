@@ -6,15 +6,14 @@ import StepForm from '@/components/StepForm';
 import StepNavigator from '@/components/StepNavigator';
 import { toast } from 'react-hot-toast';
 
-type WorkflowStep = 
-  | 'customer_analysis'
-  | 'competitor_analysis'
-  | 'loyalty_objectives'
-  | 'loyalty_mechanics'
-  | 'cost_estimation';
+type WorkflowStep = 'customer_analysis' | 'competitor_analysis' | 'loyalty_objectives' | 'loyalty_mechanics' | 'cost_estimation';
 
 interface WorkflowState {
-  [key in WorkflowStep]?: any;
+  customer_analysis?: any;
+  competitor_analysis?: any;
+  loyalty_objectives?: any;
+  loyalty_mechanics?: any;
+  cost_estimation?: any;
 }
 
 interface CustomerSegment {
