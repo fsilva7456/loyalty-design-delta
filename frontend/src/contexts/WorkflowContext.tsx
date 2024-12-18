@@ -6,17 +6,23 @@ interface WorkflowState {
   workflowId: string | null;
   stepResults: Record<string, any>;
   businessCase: any | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
 type WorkflowAction =
   | { type: 'SET_WORKFLOW_ID'; payload: string }
   | { type: 'SET_STEP_RESULT'; payload: { step: string; result: any } }
-  | { type: 'SET_BUSINESS_CASE'; payload: any };
+  | { type: 'SET_BUSINESS_CASE'; payload: any }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null };
 
 const initialState: WorkflowState = {
   workflowId: null,
   stepResults: {},
   businessCase: null,
+  isLoading: false,
+  error: null,
 };
 
 const WorkflowContext = createContext<{
@@ -35,6 +41,10 @@ function workflowReducer(state: WorkflowState, action: WorkflowAction): Workflow
       };
     case 'SET_BUSINESS_CASE':
       return { ...state, businessCase: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
     default:
       return state;
   }
@@ -50,10 +60,13 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useWorkflow() {
+// Export both names for backward compatibility
+export const useWorkflow = () => {
   const context = useContext(WorkflowContext);
   if (!context) {
     throw new Error('useWorkflow must be used within a WorkflowProvider');
   }
   return context;
-}
+};
+
+export const useWorkflowContext = useWorkflow;
