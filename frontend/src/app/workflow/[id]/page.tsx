@@ -1,23 +1,21 @@
 "use client";
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { startWorkflow, executeStep } from '@/services/api';
 import StepForm from '@/components/StepForm';
 import StepNavigator from '@/components/StepNavigator';
 import { useWorkflow } from '@/contexts/WorkflowContext';
 import { toast } from 'react-hot-toast';
-import { StepResult } from '@/types/api';
-
-type WorkflowStep = 
-  | 'competitor_analysis'
-  | 'customer_analysis'
-  | 'loyalty_objectives'
-  | 'loyalty_mechanics'
-  | 'cost_estimation'
-  | 'performance_simulation'
-  | 'business_case';
+import { 
+  WorkflowStep, 
+  WORKFLOW_STEPS,
+  getNextStep, 
+  isStepAvailable 
+} from '@/types/workflow';
 
 export default function WorkflowPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const { state, dispatch } = useWorkflow();
 
   useEffect(() => {
@@ -42,23 +40,30 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
   }, [params.id, state.workflowId, dispatch]);
 
   const getCurrentStep = (): WorkflowStep => {
-    const steps: WorkflowStep[] = [
-      'competitor_analysis',
-      'customer_analysis',
-      'loyalty_objectives',
-      'loyalty_mechanics',
-      'cost_estimation',
-      'performance_simulation',
-      'business_case'
-    ];
+    const completedSteps = Object.keys(state.stepResults) as WorkflowStep[];
+    
+    // If no steps completed, start with the first step
+    if (completedSteps.length === 0) {
+      return WORKFLOW_STEPS[0];
+    }
 
-    // Find the first step without a result
-    const nextStep = steps.find(step => !state.stepResults[step]);
-    return nextStep || steps[0];
+    // Find the last completed step
+    const lastCompletedStep = completedSteps.reduce((latest, step) => {
+      const latestIndex = WORKFLOW_STEPS.indexOf(latest);
+      const currentIndex = WORKFLOW_STEPS.indexOf(step);
+      return currentIndex > latestIndex ? step : latest;
+    }, completedSteps[0]);
+
+    // Get the next step after the last completed one
+    const nextStep = getNextStep(lastCompletedStep);
+    
+    // If there's no next step, we're done - stay on the last step
+    return nextStep ?? lastCompletedStep;
   };
 
   const handleStepSubmit = async (formData: any) => {
     dispatch({ type: 'SET_LOADING', payload: true });
+    
     try {
       const payload = {
         workflow_id: params.id,
@@ -73,7 +78,14 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
         payload: { step: currentStep, result }
       });
 
-      toast.success('Step completed successfully');
+      // After successful submission, check if we should move to next step
+      const nextStep = getNextStep(currentStep);
+      if (nextStep) {
+        toast.success(`${currentStep} completed - moving to ${nextStep}`);
+      } else {
+        toast.success('All steps completed!');
+        router.push(`/workflow/${params.id}/results`);
+      }
     } catch (error) {
       console.error(`Error executing ${currentStep}:`, error);
       toast.error('Failed to complete step');
@@ -88,6 +100,7 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
 
   const handleRegenerate = async (feedback: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
+    
     try {
       const payload = {
         workflow_id: params.id,
@@ -117,11 +130,7 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
   };
 
   const currentStep = getCurrentStep();
-  const currentStepResult = state.stepResults[currentStep] as StepResult;
-
-  const getCompletedSteps = () => {
-    return Object.keys(state.stepResults) as WorkflowStep[];
-  };
+  const completedSteps = Object.keys(state.stepResults) as WorkflowStep[];
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -129,7 +138,7 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
         <div className="space-y-8">
           <StepNavigator
             currentStep={currentStep}
-            completedSteps={getCompletedSteps()}
+            completedSteps={completedSteps}
             isLoading={state.isLoading}
           />
 
@@ -137,7 +146,7 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
             step={currentStep}
             onSubmit={handleStepSubmit}
             onRegenerate={handleRegenerate}
-            result={currentStepResult}
+            result={state.stepResults[currentStep]}
             previousStepResults={state.stepResults}
           />
 
@@ -147,6 +156,7 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
               <pre className="mt-2 text-xs text-gray-600 overflow-auto">
                 {JSON.stringify({
                   currentStep,
+                  completedSteps,
                   workflowState: state,
                   params
                 }, null, 2)}
