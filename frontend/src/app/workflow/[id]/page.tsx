@@ -6,16 +6,40 @@ import StepForm from '@/components/StepForm';
 import StepNavigator from '@/components/StepNavigator';
 import { toast } from 'react-hot-toast';
 
+type WorkflowStep = 
+  | 'customer_analysis'
+  | 'competitor_analysis'
+  | 'loyalty_objectives'
+  | 'loyalty_mechanics'
+  | 'cost_estimation';
+
 interface WorkflowState {
-  customer_analysis?: any;
-  competitor_analysis?: any;
-  loyalty_objectives?: any;
-  loyalty_mechanics?: any;
-  cost_estimation?: any;
+  [key in WorkflowStep]?: any;
+}
+
+interface CustomerSegment {
+  segment_name: string;
+  description: string;
+  characteristics: string[];
+  preferences: string[];
+  size_percentage: number;
+  annual_value: number;
+}
+
+interface CustomerAnalysisResult {
+  workflow_id: string;
+  segments: CustomerSegment[];
+  insights: string;
+}
+
+interface CompetitorAnalysisResult {
+  workflow_id: string;
+  competitors: any[];
+  market_insights: string;
 }
 
 export default function WorkflowPage({ params }: { params: { id: string } }) {
-  const [currentStep, setCurrentStep] = useState('customer_analysis');
+  const [currentStep, setCurrentStep] = useState<WorkflowStep>('customer_analysis');
   const [workflowState, setWorkflowState] = useState<WorkflowState>({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,7 +48,6 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
       try {
         if (!params.id) {
           const result = await startWorkflow();
-          // Handle workflow initialization
           console.log('New workflow started:', result);
         }
       } catch (error) {
@@ -109,7 +132,7 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
           {/* Step Navigation */}
           <StepNavigator
             currentStep={currentStep}
-            completedSteps={Object.keys(workflowState)}
+            completedSteps={Object.keys(workflowState) as WorkflowStep[]}
             onStepChange={setCurrentStep}
             isLoading={isLoading}
           />
