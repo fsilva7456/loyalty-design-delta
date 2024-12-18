@@ -13,6 +13,7 @@ import {
   getNextStep, 
   isStepAvailable 
 } from '@/types/workflow';
+import type { BaseStepPayload, RegenerationPayload } from '@/types/api';
 
 export default function WorkflowPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -65,8 +66,10 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const payload = {
+      const payload: BaseStepPayload = {
         workflow_id: params.id,
+        company_name: state.companyName,
+        industry: state.industry,
         ...formData
       };
 
@@ -102,8 +105,10 @@ export default function WorkflowPage({ params }: { params: { id: string } }) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const payload = {
+      const payload: RegenerationPayload = {
         workflow_id: params.id,
+        company_name: state.companyName,
+        industry: state.industry,
         user_feedback: feedback,
         previous_result: state.stepResults[currentStep]
       };
