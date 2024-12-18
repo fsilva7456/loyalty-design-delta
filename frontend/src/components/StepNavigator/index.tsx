@@ -1,78 +1,73 @@
-import { useState } from 'react';
-import RegenerationModal from '../RegenerationModal';
+import { FC } from 'react';
+
+type WorkflowStep = 'customer_analysis' | 'competitor_analysis' | 'loyalty_objectives' | 'loyalty_mechanics' | 'cost_estimation';
 
 interface StepNavigatorProps {
-  steps: string[];
-  currentStep: string;
-  onNext: () => void;
-  onRepeat: (feedback: string) => Promise<void>;
+  currentStep: WorkflowStep;
+  completedSteps: WorkflowStep[];
+  onStepChange: (step: WorkflowStep) => void;
+  isLoading?: boolean;
 }
 
-export default function StepNavigator({
-  steps,
+const STEP_ORDER: WorkflowStep[] = [
+  'customer_analysis',
+  'competitor_analysis',
+  'loyalty_objectives',
+  'loyalty_mechanics',
+  'cost_estimation'
+];
+
+const STEP_LABELS: Record<WorkflowStep, string> = {
+  customer_analysis: 'Customer Analysis',
+  competitor_analysis: 'Competitor Analysis',
+  loyalty_objectives: 'Loyalty Objectives',
+  loyalty_mechanics: 'Loyalty Mechanics',
+  cost_estimation: 'Cost Estimation'
+};
+
+const StepNavigator: FC<StepNavigatorProps> = ({
   currentStep,
-  onNext,
-  onRepeat
-}: StepNavigatorProps) {
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const currentIndex = steps.indexOf(currentStep);
-
-  const handleRepeat = async (feedback: string) => {
-    try {
-      await onRepeat(feedback);
-      setShowFeedbackModal(false);
-    } catch (error) {
-      console.error('Error during step repeat:', error);
-      // Let the RegenerationModal handle the error display
-      throw error;
-    }
-  };
-
-  const formatStepName = (step: string) => {
-    return step
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+  completedSteps,
+  onStepChange,
+  isLoading = false
+}) => {
+  const isStepComplete = (step: WorkflowStep) => completedSteps.includes(step);
+  const isStepAvailable = (step: WorkflowStep) => {
+    const currentIndex = STEP_ORDER.indexOf(currentStep);
+    const stepIndex = STEP_ORDER.indexOf(step);
+    return stepIndex <= currentIndex || isStepComplete(step);
   };
 
   return (
-    <div className="space-y-4">
-      <nav aria-label="Progress">
-        <ol className="flex items-center justify-center space-x-5">
-          {steps.map((step, index) => (
-            <li key={step} className="flex items-center">
-              <div
-                className={`${index <= currentIndex ? 'bg-indigo-600' : 'bg-gray-200'}
-                  h-2.5 w-2.5 rounded-full`}
-              />
-              <span className="ml-2 text-sm font-medium text-gray-500">
-                {formatStepName(step)}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </nav>
-      <div className="flex justify-center space-x-4">
-        <button
-          onClick={() => setShowFeedbackModal(true)}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          Repeat Step
-        </button>
-        <button
-          onClick={onNext}
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          Next Step
-        </button>
-      </div>
+    <nav aria-label="Progress">
+      <ol role="list" className="space-y-4 md:flex md:space-y-0 md:space-x-8">
+        {STEP_ORDER.map((step) => {
+          const isCurrent = step === currentStep;
+          const isCompleted = isStepComplete(step);
+          const isAvailable = isStepAvailable(step);
 
-      <RegenerationModal
-        isOpen={showFeedbackModal}
-        onClose={() => setShowFeedbackModal(false)}
-        onSubmit={handleRepeat}
-        title={`Regenerate ${formatStepName(currentStep)}`}
-      />
-    </div>
+          return (
+            <li key={step} className="md:flex-1">
+              <button
+                onClick={() => isAvailable && !isLoading && onStepChange(step)}
+                disabled={!isAvailable || isLoading}
+                className={`group flex flex-col border rounded-md py-2 px-4 hover:border-indigo-600 w-full 
+                  ${isCurrent ? 'border-indigo-600' : ''}
+                  ${isCompleted ? 'border-green-600' : ''}
+                  ${!isAvailable ? 'opacity-50 cursor-not-allowed' : ''}
+                  ${isLoading ? 'cursor-not-allowed' : ''}`}
+              >
+                <span className="text-xs font-medium">
+                  {isCompleted ? '✓ ' : ''}
+                  {STEP_LABELS[step]}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
-}
+};
+
+export default StepNavigator;
