@@ -5,17 +5,21 @@ export interface WorkflowResponse {
   created_at?: string;
 }
 
-export interface WorkflowState {
-  workflowId: string | null;
-  stepResults: Record<string, StepResult>;
-  businessCase: any | null;
-  isLoading: boolean;
-  error: string | null;
-}
+export type WorkflowStep = 
+  | 'competitor_analysis'
+  | 'customer_analysis'
+  | 'loyalty_objectives'
+  | 'loyalty_mechanics'
+  | 'cost_estimation'
+  | 'performance_simulation'
+  | 'business_case';
 
-export type WorkflowAction = 
-  | { type: 'SET_WORKFLOW_ID'; payload: string }
-  | { type: 'SET_STEP_RESULT'; payload: { step: string; result: StepResult } }
-  | { type: 'SET_BUSINESS_CASE'; payload: any }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
+export const WORKFLOW_STEPS: WorkflowStep[] = [
+  'competitor_analysis',
+  'customer_analysis',
+  'loyalty_objectives',
+  'loyalty_mechanics',
+  'cost_estimation',
+  'performance_simulation',
+  'business_case'
+];

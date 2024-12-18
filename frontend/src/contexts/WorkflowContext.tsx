@@ -1,19 +1,23 @@
 "use client";
 
 import { createContext, useContext, useReducer, ReactNode } from 'react';
+import { StepResult } from '@/types/api';
 
-interface WorkflowState {
+export interface WorkflowState {
   workflowId: string | null;
-  stepResults: Record<string, any>;
+  stepResults: Record<string, StepResult>;
   businessCase: any | null;
+  companyName: string;
+  industry: string;
   isLoading: boolean;
   error: string | null;
 }
 
-type WorkflowAction =
+export type WorkflowAction =
   | { type: 'SET_WORKFLOW_ID'; payload: string }
-  | { type: 'SET_STEP_RESULT'; payload: { step: string; result: any } }
+  | { type: 'SET_STEP_RESULT'; payload: { step: string; result: StepResult } }
   | { type: 'SET_BUSINESS_CASE'; payload: any }
+  | { type: 'SET_COMPANY_INFO'; payload: { companyName: string; industry: string } }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null };
 
@@ -21,6 +25,8 @@ const initialState: WorkflowState = {
   workflowId: null,
   stepResults: {},
   businessCase: null,
+  companyName: '',
+  industry: '',
   isLoading: false,
   error: null,
 };
@@ -34,17 +40,32 @@ function workflowReducer(state: WorkflowState, action: WorkflowAction): Workflow
   switch (action.type) {
     case 'SET_WORKFLOW_ID':
       return { ...state, workflowId: action.payload };
+    
     case 'SET_STEP_RESULT':
       return {
         ...state,
-        stepResults: { ...state.stepResults, [action.payload.step]: action.payload.result }
+        stepResults: { 
+          ...state.stepResults, 
+          [action.payload.step]: action.payload.result 
+        }
       };
+    
     case 'SET_BUSINESS_CASE':
       return { ...state, businessCase: action.payload };
+    
+    case 'SET_COMPANY_INFO':
+      return { 
+        ...state, 
+        companyName: action.payload.companyName,
+        industry: action.payload.industry 
+      };
+    
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
+    
     case 'SET_ERROR':
       return { ...state, error: action.payload };
+    
     default:
       return state;
   }
@@ -60,7 +81,7 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Export both names for backward compatibility
+// Custom hook to use workflow context
 export const useWorkflow = () => {
   const context = useContext(WorkflowContext);
   if (!context) {
@@ -68,5 +89,3 @@ export const useWorkflow = () => {
   }
   return context;
 };
-
-export const useWorkflowContext = useWorkflow;
