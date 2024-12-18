@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from 'react';
-import { RegenerationModalProps } from './types';
+
+export interface RegenerationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (feedback: string) => Promise<void> | void;
+  title?: string;
+  isLoading?: boolean;
+}
 
 export default function RegenerationModal({
   isOpen,
@@ -16,8 +23,6 @@ export default function RegenerationModal({
     e.preventDefault();
     onSubmit(feedback);
     setFeedback('');
-    // Don't close the modal immediately if loading,
-    // let the parent component handle it after completion
     if (!isLoading) {
       onClose();
     }
@@ -74,5 +79,3 @@ export default function RegenerationModal({
     </div>
   );
 }
-
-export type { RegenerationModalProps };
