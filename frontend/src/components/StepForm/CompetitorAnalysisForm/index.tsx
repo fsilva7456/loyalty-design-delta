@@ -12,7 +12,7 @@ export default function CompetitorAnalysisForm({
   onSubmit,
   isLoading = false 
 }: CompetitorAnalysisFormProps) {
-  const { state } = useWorkflow();
+  const { state, dispatch } = useWorkflow();
   const [formData, setFormData] = useState({
     company_name: state.companyName || '',
     industry: state.industry || ''
@@ -20,6 +20,16 @@ export default function CompetitorAnalysisForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Update company info in context
+    dispatch({
+      type: 'SET_COMPANY_INFO',
+      payload: {
+        companyName: formData.company_name,
+        industry: formData.industry
+      }
+    });
+
     await onSubmit(formData);
   };
 
