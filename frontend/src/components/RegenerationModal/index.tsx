@@ -5,13 +5,15 @@ interface RegenerationModalProps {
   onClose: () => void;
   onSubmit: (feedback: string) => void;
   title?: string;
+  isLoading?: boolean;
 }
 
 export default function RegenerationModal({
   isOpen,
   onClose,
   onSubmit,
-  title = 'Provide Feedback for Regeneration'
+  title = 'Provide Feedback for Regeneration',
+  isLoading = false
 }: RegenerationModalProps) {
   const [feedback, setFeedback] = useState('');
 
@@ -19,7 +21,11 @@ export default function RegenerationModal({
     e.preventDefault();
     onSubmit(feedback);
     setFeedback('');
-    onClose();
+    // Don't close the modal immediately if loading,
+    // let the parent component handle it after completion
+    if (!isLoading) {
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
@@ -40,6 +46,7 @@ export default function RegenerationModal({
               className="w-full h-32 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Describe what aspects you'd like to modify..."
               required
+              disabled={isLoading}
             />
           </div>
           
@@ -47,15 +54,24 @@ export default function RegenerationModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              disabled={isLoading}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+              disabled={isLoading}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
-              Regenerate
+              {isLoading ? (
+                <>
+                  <div className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Regenerating...
+                </>
+              ) : (
+                'Regenerate'
+              )}
             </button>
           </div>
         </form>
